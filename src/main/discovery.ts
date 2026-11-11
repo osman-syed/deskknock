@@ -56,7 +56,8 @@ export class Discovery {
 
   start(): void {
     if (this.bonjour) return;
-    const b = this.opts.bonjour ?? (new Bonjour() as unknown as BonjourLike);
+    // Default errorCallback throws inside an mDNS socket callback (uncaught in main); log instead.
+    const b = this.opts.bonjour ?? (new Bonjour({}, (e: unknown) => console.warn('mdns', e)) as unknown as BonjourLike);
     this.bonjour = b;
     this.published = b.publish({ name: `deskknock-${this.opts.peerId}`, type: 'deskknock', protocol: 'tcp', port: this.opts.port, txt: { peerId: this.opts.peerId } });
     const browser = b.find({ type: 'deskknock', protocol: 'tcp' });
