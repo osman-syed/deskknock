@@ -144,6 +144,7 @@ export function startApp(): () => void {
   const discovery = new Discovery({
     peerId: settings.peerId, name: settings.name, port: settings.port,
     connect: (host, port) => transport.connect(host, port),
+    isConnected: (peerId) => transport.isConnected(peerId),
   });
 
   transport.listen().then(

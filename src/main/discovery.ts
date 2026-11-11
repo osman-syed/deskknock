@@ -13,8 +13,9 @@ export interface BonjourService {
 export interface BonjourLike {
   publish(o: { name: string; type: string; protocol: 'tcp'; port: number; txt: Record<string, string> }): { stop?: (cb?: () => void) => void };
   find(o: { type: string; protocol: 'tcp' }): {
-    on(ev: 'up', cb: (s: BonjourService) => void): unknown;
+    on(ev: 'up' | 'srv-update' | 'txt-update', cb: (s: BonjourService) => void): unknown;
     stop(): void;
+    update?(): void;
   };
   destroy(): void;
 }
@@ -35,15 +36,19 @@ const isIPv4 = (a: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(a);
 
 export class Discovery {
   private bonjour: BonjourLike | null = null;
-  private browser: { stop(): void } | null = null;
+  private browser: { stop(): void; update?(): void } | null = null;
   private published: { stop?: (cb?: () => void) => void } | null = null;
   private manual: { host: string; port: number }[] = [];
+  /** Last known address of each mDNS-discovered peer; bonjour only emits 'up' once per service name. */
+  private readonly known = new Map<string, { host: string; port: number }>();
   private timer: NodeJS.Timeout | null = null;
   private readonly retryMs: number;
 
   constructor(private readonly opts: {
     peerId: string; name: string; port: number;
     connect: (host: string, port: number) => void;
+    /** Whether a peer currently has a live connection; disconnected known peers are redialed. */
+    isConnected?: (peerId: string) => boolean;
     bonjour?: BonjourLike; retryMs?: number;
   }) {
     this.retryMs = opts.retryMs ?? RETRY_MS;
@@ -57,6 +62,10 @@ export class Discovery {
     const browser = b.find({ type: 'deskknock', protocol: 'tcp' });
     this.browser = browser;
     browser.on('up', (s) => this.onUp(s));
+    browser.on('srv-update', (s) => this.remember(s));
+    browser.on('txt-update', (s) => this.remember(s));
+    this.timer = setInterval(() => this.retry(), this.retryMs);
+    this.timer.unref?.();
   }
 
   setManualPeers(list: string[]): void {
@@ -66,11 +75,7 @@ export class Discovery {
       if (p) this.manual.push(p);
       else console.warn('ignoring invalid manual peer', s);
     }
-    if (this.timer) { clearInterval(this.timer); this.timer = null; }
-    if (!this.manual.length) return;
     this.dialManual();
-    this.timer = setInterval(() => this.dialManual(), this.retryMs);
-    this.timer.unref?.();
   }
 
   stop(): void {
@@ -80,16 +85,43 @@ export class Discovery {
     try { this.published?.stop?.(); } catch { /* ignore */ }
     try { this.bonjour?.destroy(); } catch { /* ignore */ }
     this.browser = null; this.published = null; this.bonjour = null;
+    this.known.clear();
+  }
+
+  private connected(peerId: string): boolean {
+    return this.opts.isConnected?.(peerId) ?? false;
+  }
+
+  private retry(): void {
+    try { this.browser?.update?.(); } catch (e) { console.warn('mdns query failed', e); }
+    for (const [peerId, a] of this.known) if (!this.connected(peerId)) this.opts.connect(a.host, a.port);
+    this.dialManual();
   }
 
   private dialManual(): void {
-    for (const p of this.manual) this.opts.connect(p.host, p.port);
+    for (const p of this.manual) {
+      // Skip addresses we already know belong to a connected peer.
+      let taken = false;
+      for (const [peerId, a] of this.known) {
+        if (a.host === p.host && a.port === p.port && this.connected(peerId)) { taken = true; break; }
+      }
+      if (!taken) this.opts.connect(p.host, p.port);
+    }
+  }
+
+  /** Records the service's address under its peerId; returns it, or null for our own/unusable services. */
+  private remember(s: BonjourService): { host: string; port: number } | null {
+    const peerId = s.txt?.peerId;
+    if (peerId === this.opts.peerId) return null;
+    const host = s.addresses?.find(isIPv4) ?? s.referer?.address;
+    if (!host) return null;
+    const a = { host, port: s.port };
+    if (typeof peerId === 'string' && peerId) this.known.set(peerId, a);
+    return a;
   }
 
   private onUp(s: BonjourService): void {
-    if (s.txt?.peerId === this.opts.peerId) return;
-    const host = s.addresses?.find(isIPv4) ?? s.referer?.address;
-    if (!host) return;
-    this.opts.connect(host, s.port);
+    const a = this.remember(s);
+    if (a) this.opts.connect(a.host, a.port);
   }
 }

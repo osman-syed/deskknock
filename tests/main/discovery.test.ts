@@ -3,8 +3,9 @@ import { EventEmitter } from 'node:events';
 import { Discovery, parseManualPeer, type BonjourLike } from '../../src/main/discovery';
 
 function fakeBonjour() {
-  const browser = new EventEmitter() as EventEmitter & { stop: () => void };
+  const browser = new EventEmitter() as EventEmitter & { stop: () => void; update: () => void };
   browser.stop = vi.fn();
+  browser.update = vi.fn();
   const published: unknown[] = [];
   const unpublish = vi.fn();
   const b: BonjourLike = {
@@ -68,5 +69,71 @@ describe('Discovery', () => {
     connect.mockClear();
     vi.advanceTimersByTime(60_000);
     expect(connect).not.toHaveBeenCalled();
+  });
+
+  it('redials a remembered mDNS peer on the timer when not connected, and re-queries', () => {
+    vi.useFakeTimers();
+    const f = fakeBonjour(); const connect = vi.fn();
+    const connected = new Set<string>();
+    const d = new Discovery({ peerId: 'me', name: 'Me', port: 47321, connect, bonjour: f.b, isConnected: (id) => connected.has(id) });
+    d.start();
+    d.setManualPeers([]);
+    f.browser.emit('up', { port: 47321, addresses: ['10.0.0.9'], txt: { peerId: 'other' } });
+    expect(connect).toHaveBeenCalledTimes(1);
+    connect.mockClear();
+    vi.advanceTimersByTime(30_000);
+    expect(connect.mock.calls).toEqual([['10.0.0.9', 47321]]);
+    expect(f.browser.update).toHaveBeenCalled();
+    d.stop();
+  });
+
+  it('uses the latest address from srv-update for redials', () => {
+    vi.useFakeTimers();
+    const f = fakeBonjour(); const connect = vi.fn();
+    const d = new Discovery({ peerId: 'me', name: 'Me', port: 47321, connect, bonjour: f.b, isConnected: () => false });
+    d.start();
+    f.browser.emit('up', { port: 47321, addresses: ['10.0.0.9'], txt: { peerId: 'other' } });
+    f.browser.emit('srv-update', { port: 5000, addresses: ['10.0.0.10'], txt: { peerId: 'other' } }, {});
+    connect.mockClear();
+    vi.advanceTimersByTime(30_000);
+    expect(connect.mock.calls).toEqual([['10.0.0.10', 5000]]);
+    d.stop();
+  });
+
+  it('does not redial a remembered mDNS peer that is connected', () => {
+    vi.useFakeTimers();
+    const f = fakeBonjour(); const connect = vi.fn();
+    const d = new Discovery({ peerId: 'me', name: 'Me', port: 47321, connect, bonjour: f.b, isConnected: (id) => id === 'other' });
+    d.start();
+    f.browser.emit('up', { port: 47321, addresses: ['10.0.0.9'], txt: { peerId: 'other' } });
+    connect.mockClear();
+    vi.advanceTimersByTime(30_000);
+    expect(connect).not.toHaveBeenCalled();
+    d.stop();
+  });
+
+  it('never dials its own peerId, even on the timer', () => {
+    vi.useFakeTimers();
+    const f = fakeBonjour(); const connect = vi.fn();
+    const d = new Discovery({ peerId: 'me', name: 'Me', port: 47321, connect, bonjour: f.b, isConnected: () => false });
+    d.start();
+    f.browser.emit('up', { port: 47321, addresses: ['10.0.0.1'], txt: { peerId: 'me' } });
+    f.browser.emit('txt-update', { port: 47321, addresses: ['10.0.0.1'], txt: { peerId: 'me' } }, {});
+    vi.advanceTimersByTime(60_000);
+    expect(connect).not.toHaveBeenCalled();
+    d.stop();
+  });
+
+  it('manual redial skips a host that belongs to a connected mDNS peer', () => {
+    vi.useFakeTimers();
+    const f = fakeBonjour(); const connect = vi.fn();
+    const d = new Discovery({ peerId: 'me', name: 'Me', port: 47321, connect, bonjour: f.b, isConnected: (id) => id === 'other' });
+    d.start();
+    f.browser.emit('up', { port: 47321, addresses: ['10.0.0.9'], txt: { peerId: 'other' } });
+    d.setManualPeers(['10.0.0.9', '10.0.0.5']);
+    connect.mockClear();
+    vi.advanceTimersByTime(30_000);
+    expect(connect.mock.calls).toEqual([['10.0.0.5', 47321]]);
+    d.stop();
   });
 });
