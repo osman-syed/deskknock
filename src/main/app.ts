@@ -13,7 +13,7 @@ import { Discovery } from './discovery';
 import { OverlayManager } from './overlay';
 import { watchScreenLock } from './lockWatcher';
 import { createTray } from './tray';
-import { ensureAutostart } from './autostart';
+import { ensureAutostart, HIDDEN_FLAG } from './autostart';
 import { resizePhoto, MAX_PHOTO_INPUT_BYTES } from './photo';
 
 const CONFIG_DIR = join(homedir(), '.config', 'DeskKnock');
@@ -271,6 +271,8 @@ export function startApp(): () => void {
       width: 900,
       height: 600,
       title: 'DeskKnock',
+      // Login autostart passes --hidden: stay in the tray. The window still exists so state pushes work.
+      show: !process.argv.includes(HIDDEN_FLAG),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         contextIsolation: true,
