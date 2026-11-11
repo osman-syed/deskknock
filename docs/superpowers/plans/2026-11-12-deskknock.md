@@ -20,7 +20,7 @@
 - Config dir `~/.config/DeskKnock/`: `settings.json`, `character.json`, `photo.png`, `peers/`.
 - Photo ≤128px on its longest side, PNG.
 - Timings: knock cooldown 30 s after an answer; "Not answered yet" after 2 min; Busy reminder after 5 min; reply peek auto-hides after 8 s.
-- Exact copy: `Hi! Look here 👋`, `<Name> is calling you`, `Coming`, `Busy · 5 min`, `You said 5 min — <Name> is waiting`, `Coming!`, `Busy, ~5 min`, `Knocking…`, `Busy until hh:mm`, `Not answered yet`, `Paused`, `Away`, `Needs update`, `Update available`, `+N more waiting`.
+- Exact copy: `Hi! Look here 👋`, `<Name> is calling you`, `Coming`, `Busy · 5 min`, `You said 5 min — <Name> is waiting`, `Coming!`, `Busy, ~5 min`, `Knocking…`, `Busy until hh:mm`, `Not answered yet`, `Seen`, `Paused`, `Away`, `Needs update`, `Update available`, `+N more waiting`.
 - Overlay edges: `bottom-left | bottom-right | left | right` (never top).
 - No GNOME notifications for knocks or replies; DeskKnock overlays only. Knocks ignore GNOME Do Not Disturb.
 - Commit messages: no co-author lines.
