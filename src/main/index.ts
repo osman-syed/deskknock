@@ -1,11 +1,17 @@
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, Menu, type Tray } from 'electron'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { OverlayManager } from './overlay'
 import { DEFAULT_CHARACTER } from '../core/character'
+import { createTray } from './tray'
+import { ensureAutostart } from './autostart'
 
 app.commandLine.appendSwitch('ozone-platform', 'x11')
 
 const overlay = new OverlayManager()
+let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let quitting = false
 
 function createMainWindow(): void {
   const win = new BrowserWindow({
@@ -17,6 +23,13 @@ function createMainWindow(): void {
       contextIsolation: true,
       nodeIntegration: false
     }
+  })
+
+  mainWindow = win
+  win.on('close', (e) => {
+    if (quitting) return
+    e.preventDefault()
+    win.hide()
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
@@ -52,8 +65,17 @@ function installDevMenu(): void {
 app.whenReady().then(() => {
   installDevMenu()
   createMainWindow()
+  // Pause persistence/broadcast is wired in Task 9.
+  tray = createTray({
+    paused: false,
+    onOpen: () => { mainWindow?.show(); mainWindow?.focus() },
+    onTogglePause: () => {},
+    onQuit: () => app.quit()
+  })
+  if (app.isPackaged) ensureAutostart(homedir(), process.execPath)
 })
 
-app.on('window-all-closed', () => {
-  app.quit()
-})
+app.on('before-quit', () => { quitting = true })
+
+// Keep running in the tray when the window is closed.
+app.on('window-all-closed', () => {})
