@@ -10,8 +10,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@types/ws": "^8.18.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "ws": "^8.22.2"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",
