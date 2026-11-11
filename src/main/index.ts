@@ -1,7 +1,11 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
 import { join } from 'node:path'
+import { OverlayManager } from './overlay'
+import { DEFAULT_CHARACTER } from '../core/character'
 
 app.commandLine.appendSwitch('ozone-platform', 'x11')
+
+const overlay = new OverlayManager()
 
 function createMainWindow(): void {
   const win = new BrowserWindow({
@@ -22,7 +26,33 @@ function createMainWindow(): void {
   }
 }
 
-app.whenReady().then(createMainWindow)
+// TEMPORARY (removed in Task 9): manual overlay check.
+function installDevMenu(): void {
+  let n = 0
+  const caller = {
+    peerId: 'self', name: 'Osman', appVersion: '0', protocolVersion: 1, character: DEFAULT_CHARACTER,
+    photoHash: null, online: true, compatible: true, paused: false, away: false
+  }
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      {
+        label: 'Dev',
+        submenu: [
+          {
+            label: 'Test knock from self',
+            click: () => overlay.showKnock({ id: `test-${++n}`, caller, photo: null, reminder: false, waitingBehind: 0, muted: false })
+          }
+        ]
+      }
+    ])
+  )
+  overlay.onAnswer((id) => overlay.hide(id))
+}
+
+app.whenReady().then(() => {
+  installDevMenu()
+  createMainWindow()
+})
 
 app.on('window-all-closed', () => {
   app.quit()

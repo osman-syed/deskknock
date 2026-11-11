@@ -14,9 +14,9 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          main: resolve(__dirname, 'src/renderer/main/index.html')
-          // Later tasks add:
-          // overlay: resolve(__dirname, 'src/renderer/overlay/index.html'),
+          main: resolve(__dirname, 'src/renderer/main/index.html'),
+          // Later tasks add builder:
+          overlay: resolve(__dirname, 'src/renderer/overlay/index.html'),
           // builder: resolve(__dirname, 'src/renderer/builder/index.html')
         }
       }
