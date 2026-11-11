@@ -36,6 +36,7 @@ export class Transport extends EventEmitter {
   private readonly byPeer = new Map<string, Conn>();
   private timer: NodeJS.Timeout | null = null;
   private closed = false;
+  private readonly dialing = new Set<string>();
   private readonly pingMs: number;
   private readonly timeoutMs: number;
 
@@ -68,8 +69,12 @@ export class Transport extends EventEmitter {
 
   connect(host: string, port: number): void {
     if (this.closed) return;
+    const key = `${host}:${port}`;
+    if (this.dialing.has(key)) return; // outgoing socket to this address already open or connecting
     const host_ = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
     const ws = new WebSocket(`ws://${host_}:${port}`, { maxPayload: MAX_MESSAGE_BYTES });
+    this.dialing.add(key);
+    ws.once('close', () => this.dialing.delete(key));
     this.attach(ws, true);
   }
 

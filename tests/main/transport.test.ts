@@ -184,4 +184,16 @@ describe('Transport', () => {
     expect((await gb)[1]).toEqual({ t: 'knock', id: 'k2' });
     expect(a.isConnected('b') && b.isConnected('a')).toBe(true);
   });
+  it('connect is a no-op while an outgoing socket to the same host:port is open', async () => {
+    const a = await mk('a'), b = await mk('b');
+    let n = 0;
+    (b as unknown as { server: import('ws').WebSocketServer }).server.on('connection', () => { n++; });
+    const up = once(a, 'online', (id, on) => id === 'b' && on);
+    a.connect('127.0.0.1', b.port);
+    a.connect('127.0.0.1', b.port);
+    await up;
+    a.connect('127.0.0.1', b.port);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(n).toBe(1);
+  });
 });
