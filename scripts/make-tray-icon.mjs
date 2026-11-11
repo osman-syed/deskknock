@@ -1,3 +1,4 @@
+// Also writes build/icon.png (256x256 app icon).
 // Generates resources/tray.png (22x22) and resources/tray@2x.png (44x44): a door with a knob.
 // White door with a dark outline so it reads on both dark and light panels. Node built-ins only.
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -5,8 +6,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
 
-const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'resources');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const out = join(root, 'resources');
+const buildDir = join(root, 'build');
 mkdirSync(out, { recursive: true });
+mkdirSync(buildDir, { recursive: true });
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {
   let c = n;
@@ -66,4 +70,5 @@ function render(size) {
 
 writeFileSync(join(out, 'tray.png'), encodePng(22, render(22)));
 writeFileSync(join(out, 'tray@2x.png'), encodePng(44, render(44)));
-console.log('wrote tray.png and tray@2x.png');
+writeFileSync(join(buildDir, 'icon.png'), encodePng(256, render(256)));
+console.log('wrote tray.png, tray@2x.png and build/icon.png');

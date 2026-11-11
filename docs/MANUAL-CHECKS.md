@@ -35,3 +35,9 @@ Manual: change the character, and a connected teammate's list and next knock sho
 Carried over from Task 9:
 - Launch DeskKnock twice → the second launch only focuses the first window (one tray icon).
 - Start another program on port 47321 (e.g. `python3 -m http.server 47321`), then launch DeskKnock → banner says it can't use the port; no peers are dialed.
+
+## Task 11
+
+Step 3 (needs sudo): `sudo apt install ./dist/deskknock_*.deb`. Run `stat -c '%U %a' /opt/DeskKnock/chrome-sandbox` -> `root 4755`. Launch from the app menu -> it runs without `--no-sandbox`. Log out and back in -> it autostarts to the tray.
+
+Step 5 (second machine): install on one teammate's machine and run Task 9 Step 5 between the two machines.

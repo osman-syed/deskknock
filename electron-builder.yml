@@ -1,0 +1,24 @@
+appId: com.deskknock.app
+productName: DeskKnock
+executableName: deskknock
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - node_modules/sharp/**
+  - node_modules/@img/**
+extraResources:
+  - from: resources/tray.png
+    to: tray.png
+  - from: resources/tray@2x.png
+    to: tray@2x.png
+linux:
+  target: deb
+  category: Utility
+  icon: build/icon.png
+  maintainer: Osman <osmansyed.developer@gmail.com>
+deb:
+  afterInstall: build/after-install.sh
