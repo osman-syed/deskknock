@@ -15,6 +15,7 @@ const state = (over: Partial<AppState> = {}): AppState => ({
   peers: [mk('a', 'Alice', false), mk('b', 'Bob', true), mk('c', 'Cara', true)],
   outgoing: {},
   updateAvailable: null,
+  networkError: null,
   settings: { peerId: 'me', name: 'Me', muted: false, paused: false, port: 47321, manualPeers: [] },
   ...over,
 });
@@ -59,5 +60,12 @@ describe('App', () => {
     expect(screen.queryByText(/Update available/)).toBeNull();
     act(() => emit(state({ updateAvailable: '0.2.0' })));
     expect(screen.getByText(/Update available/)).toBeTruthy();
+  });
+  it('shows the network error banner when set', () => {
+    render(<App />);
+    act(() => emit(state()));
+    expect(screen.queryByRole('alert')).toBeNull();
+    act(() => emit(state({ networkError: "Can't use port 47321 — change it in Settings and restart" })));
+    expect(screen.getByRole('alert').textContent).toContain("Can't use port 47321");
   });
 });

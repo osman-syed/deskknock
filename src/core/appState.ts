@@ -7,5 +7,7 @@ export interface AppState {
   peers: PeerView[];
   outgoing: Record<string, OutgoingView>;
   updateAvailable: string | null;
+  /** Set when networking could not start (e.g. port in use); the app keeps running. */
+  networkError: string | null;
   settings: Settings;
 }

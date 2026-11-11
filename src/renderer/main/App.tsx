@@ -41,6 +41,9 @@ export function App(): JSX.Element {
         )}
         <button onClick={() => setShowSettings((v) => !v)} disabled={!state}>Settings</button>
       </header>
+      {state?.networkError && (
+        <div role="alert" style={styles.error}>{state.networkError}</div>
+      )}
       {state && showSettings && (
         <Settings settings={state.settings} onSave={(s) => window.deskknock.saveSettings(s)} onClose={() => setShowSettings(false)} />
       )}
@@ -71,6 +74,7 @@ const styles = {
   header: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid #ddd' },
   title: { fontSize: 20, margin: 0, flex: 1 },
   update: { background: '#fff4cc', color: '#7a5b00', borderRadius: 12, padding: '2px 10px', fontSize: 13 },
+  error: { background: '#fde2e1', color: '#8a1c14', padding: '8px 16px', borderBottom: '1px solid #f3b7b3' },
   list: { listStyle: 'none', margin: 0, padding: 0 },
   empty: { padding: 16, color: '#666' },
 } as const;

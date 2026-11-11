@@ -7,6 +7,7 @@ import { PROTOCOL_VERSION, type Message } from '../core/protocol';
 import { KnockEngine, type OutgoingView } from '../core/knockEngine';
 import { DEFAULT_CHARACTER } from '../core/character';
 import type { AppState } from '../core/appState';
+import { listenErrorMessage } from '../core/network';
 import { Transport } from './transport';
 import { Discovery } from './discovery';
 import { OverlayManager } from './overlay';
@@ -36,7 +37,8 @@ function sanitizeSettings(raw: unknown, cur: Settings): Settings | null {
   };
 }
 
-export function startApp(): void {
+/** Starts everything; returns a function that brings the main window to the front. */
+export function startApp(): () => void {
   const store = new Store(CONFIG_DIR);
   let settings = store.loadSettings();
   if (!settings.name) {
@@ -51,6 +53,7 @@ export function startApp(): void {
   let tray: Tray | null = null;
   let quitting = false;
   let locked = false;
+  let networkError: string | null = null;
 
   const hello = (): Extract<Message, { t: 'hello' }> => ({
     t: 'hello', peerId: settings.peerId, name: settings.name, appVersion,
@@ -87,6 +90,7 @@ export function startApp(): void {
         peers: registry.list().filter((p) => p.peerId !== settings.peerId),
         outgoing: Object.fromEntries(outgoing),
         updateAvailable: registry.newerAppVersionSeen(appVersion),
+        networkError,
         settings,
       };
       mainWindow.webContents.send('deskknock:state', s);
@@ -145,10 +149,11 @@ export function startApp(): void {
       discovery.setManualPeers(settings.manualPeers);
     },
     (err) => {
-      // Still dial out so we can knock others even if our port is taken.
+      // Without our own port we can't be reached; don't advertise or dial under our peerId.
       console.error(`DeskKnock: cannot listen on port ${settings.port}:`, err?.message ?? err);
-      discovery.start();
-      discovery.setManualPeers(settings.manualPeers);
+      networkError = listenErrorMessage(settings.port, err);
+      void transport.close();
+      pushState();
     },
   );
 
@@ -194,7 +199,7 @@ export function startApp(): void {
     settings = next;
     store.saveSettings(settings);
     if (next.name !== prev.name) transport.broadcast(hello());
-    if (next.manualPeers.join('\n') !== prev.manualPeers.join('\n')) discovery.setManualPeers(next.manualPeers);
+    if (!networkError && next.manualPeers.join('\n') !== prev.manualPeers.join('\n')) discovery.setManualPeers(next.manualPeers);
     // muted is read on each knock; port applies after restart.
     pushState();
   });
@@ -221,10 +226,17 @@ export function startApp(): void {
     else win.loadFile(join(__dirname, '../renderer/main/index.html'));
   };
 
+  const showMainWindow = (): void => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  };
+
   createMainWindow();
   tray = createTray({
     paused: settings.paused,
-    onOpen: () => { mainWindow?.show(); mainWindow?.focus(); },
+    onOpen: showMainWindow,
     // The checkbox item toggles itself, so the tray already shows the new state.
     onTogglePause: (paused) => setPaused(paused),
     onQuit: () => app.quit(),
@@ -240,4 +252,6 @@ export function startApp(): void {
     tray?.destroy();
     tray = null;
   });
+
+  return showMainWindow;
 }
