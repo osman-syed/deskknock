@@ -41,6 +41,9 @@ interface Outgoing {
 
 interface Reminder { id: string; fromPeerId: string; at: number }
 
+/** Unanswered knock still on the callee's screen (includes not-answered). */
+const isUnanswered = (v: OutgoingView): boolean => isPending(v) || v.kind === 'not-answered';
+
 const isPending = (v: OutgoingView): boolean =>
   v.kind === 'knocking' || v.kind === 'shown' || v.kind === 'queued' || v.kind === 'away';
 
@@ -70,7 +73,7 @@ export class KnockEngine {
     if (this.presence.get(peerId)?.paused) return false;
     const o = this.outgoing.get(peerId);
     if (o) {
-      if (isPending(o.view)) return false;
+      if (isUnanswered(o.view)) return false;
       if (o.answeredAt !== undefined && this.now() < o.answeredAt + COOLDOWN_MS) return false;
     }
     const id = this.newId();
@@ -83,7 +86,7 @@ export class KnockEngine {
 
   cancel(peerId: string): void {
     const o = this.outgoing.get(peerId);
-    if (!o || !isPending(o.view)) return;
+    if (!o || !isUnanswered(o.view)) return;
     this.fx.send(peerId, { t: 'cancel', id: o.id });
     this.outgoing.delete(peerId);
     this.emitIdle(peerId);

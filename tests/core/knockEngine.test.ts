@@ -76,6 +76,22 @@ describe('caller side', () => {
     expect(lastView(B)).toEqual({ kind: 'not-answered' });
   });
 
+  it('cancel works from not-answered', () => {
+    const id = knockB();
+    now += 120_000; eng.tick();
+    expect(lastView(B)).toEqual({ kind: 'not-answered' });
+    eng.cancel(B);
+    expect(fx.sent.at(-1)).toEqual({ peerId: B, m: { t: 'cancel', id } });
+    expect(lastView(B)).toEqual({ kind: 'idle', canKnock: true });
+  });
+
+  it('knock is refused while not-answered (must cancel first)', () => {
+    knockB();
+    now += 120_000; eng.tick();
+    expect(eng.knock(B)).toBe(false);
+    expect(fx.sent).toHaveLength(1);
+  });
+
   it('reply coming shows reply peek and view', () => {
     const id = knockB();
     eng.onMessage(B, { t: 'reply', id, answer: 'coming' });
