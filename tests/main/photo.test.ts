@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import sharp from 'sharp';
 import { resizePhoto } from '../../src/main/photo';
 
@@ -13,5 +13,16 @@ describe('resizePhoto', () => {
   });
   it('rejects non-image', async () => {
     await expect(resizePhoto(Buffer.from('not an image at all'))).rejects.toThrow();
+  });
+  it('rejects with a clear error when sharp cannot be loaded', async () => {
+    vi.resetModules();
+    vi.doMock('sharp', () => { throw new Error('libvips.so: cannot open shared object file'); });
+    try {
+      const { resizePhoto: fresh } = await import('../../src/main/photo');
+      await expect(fresh(Buffer.from('x'))).rejects.toThrow(/image library unavailable/i);
+    } finally {
+      vi.doUnmock('sharp');
+      vi.resetModules();
+    }
   });
 });
