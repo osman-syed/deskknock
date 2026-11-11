@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { DEFAULT_CHARACTER, isCharacter, type Character } from './character';
 import type { PeerProfile } from './peers';
@@ -52,6 +52,8 @@ export class Store {
     this.writeAtomic(this.path('settings.json'), JSON.stringify(s, null, 2));
   }
 
+  hasCharacter(): boolean { return existsSync(this.path('character.json')); }
+
   loadCharacter(): Character {
     const raw = this.readJson(this.path('character.json'));
     return isCharacter(raw) ? raw : { ...DEFAULT_CHARACTER };
@@ -71,6 +73,8 @@ export class Store {
   savePhoto(png: Buffer): void {
     this.writeAtomic(this.path('photo.png'), png);
   }
+
+  clearPhoto(): void { rmSync(this.path('photo.png'), { force: true }); }
 
   cachePeer(p: PeerProfile): void {
     const all = this.loadCachedPeers().filter((x) => x.peerId !== p.peerId);

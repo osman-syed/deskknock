@@ -48,3 +48,20 @@ describe('Store', () => {
     expect(st.loadPeerPhoto('zzz')).toBeNull();
   });
 });
+
+describe('Store character/photo additions', () => {
+  it('hasCharacter false until saved', () => {
+    const s = new Store(dir);
+    expect(s.hasCharacter()).toBe(false);
+    s.saveCharacter(DEFAULT_CHARACTER);
+    expect(s.hasCharacter()).toBe(true);
+  });
+  it('clearPhoto removes the photo and is idempotent', () => {
+    const s = new Store(dir);
+    s.savePhoto(Buffer.from([1, 2, 3]));
+    expect(s.loadPhoto()).not.toBeNull();
+    s.clearPhoto();
+    expect(s.loadPhoto()).toBeNull();
+    expect(() => s.clearPhoto()).not.toThrow();
+  });
+});

@@ -27,3 +27,11 @@ Manual end-to-end (two machines): knock → overlay → `Coming` → the caller 
 Reply peek arrives while an incoming knock is visible → both are visible on different edges; the knock's buttons still work.
 
 (The Task 7 "Dev → Test knock from self" menu item is gone; the window has Electron's default menu again.)
+
+## Task 10
+
+Manual: change the character, and a connected teammate's list and next knock show the new look.
+
+Carried over from Task 9:
+- Launch DeskKnock twice → the second launch only focuses the first window (one tray icon).
+- Start another program on port 47321 (e.g. `python3 -m http.server 47321`), then launch DeskKnock → banner says it can't use the port; no peers are dialed.

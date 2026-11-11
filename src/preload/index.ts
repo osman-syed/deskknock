@@ -22,5 +22,12 @@ contextBridge.exposeInMainWorld('deskknock', {
   },
   knock: (peerId: string) => ipcRenderer.send('deskknock:knock', peerId),
   cancel: (peerId: string) => ipcRenderer.send('deskknock:cancel', peerId),
-  saveSettings: (s: unknown) => ipcRenderer.send('deskknock:saveSettings', s)
+  saveSettings: (s: unknown) => ipcRenderer.send('deskknock:saveSettings', s),
+  editCharacter: () => ipcRenderer.send('deskknock:editCharacter')
+})
+
+// Character builder window API.
+contextBridge.exposeInMainWorld('builder', {
+  load: () => ipcRenderer.invoke('builder:load'),
+  save: (c: unknown, photo: Uint8Array | null) => ipcRenderer.invoke('builder:save', c, photo)
 })

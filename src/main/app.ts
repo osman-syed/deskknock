@@ -5,7 +5,7 @@ import { Store, type Settings } from '../core/store';
 import { PeerRegistry, type PeerView } from '../core/peers';
 import { PROTOCOL_VERSION, type Message } from '../core/protocol';
 import { KnockEngine, type OutgoingView } from '../core/knockEngine';
-import { DEFAULT_CHARACTER } from '../core/character';
+import { DEFAULT_CHARACTER, isCharacter, type Character } from '../core/character';
 import type { AppState } from '../core/appState';
 import { listenErrorMessage } from '../core/network';
 import { Transport } from './transport';
@@ -14,6 +14,7 @@ import { OverlayManager } from './overlay';
 import { watchScreenLock } from './lockWatcher';
 import { createTray } from './tray';
 import { ensureAutostart } from './autostart';
+import { resizePhoto, MAX_PHOTO_INPUT_BYTES } from './photo';
 
 const CONFIG_DIR = join(homedir(), '.config', 'DeskKnock');
 
@@ -45,11 +46,13 @@ export function startApp(): () => void {
     settings = { ...settings, name: defaultName() };
     store.saveSettings(settings);
   }
-  const character = store.loadCharacter();
-  const photo = store.loadPhoto();
+  const firstRun = !store.hasCharacter();
+  let character = store.loadCharacter();
+  let photo = store.loadPhoto();
   const appVersion = app.getVersion();
 
   let mainWindow: BrowserWindow | null = null;
+  let builderWindow: BrowserWindow | null = null;
   let tray: Tray | null = null;
   let quitting = false;
   let locked = false;
@@ -204,7 +207,62 @@ export function startApp(): () => void {
     pushState();
   });
 
+  // ---------- IPC from the builder window ----------
+  const fromBuilder = (e: Electron.IpcMainInvokeEvent): boolean =>
+    !!builderWindow && !builderWindow.isDestroyed() && e.sender === builderWindow.webContents;
+
+  ipcMain.handle('builder:load', (e) => {
+    if (!fromBuilder(e)) throw new Error('forbidden');
+    return { character, photo: photo ? new Uint8Array(photo.png) : null };
+  });
+  ipcMain.handle('builder:save', async (e, c: unknown, rawPhoto: unknown) => {
+    if (!fromBuilder(e)) throw new Error('forbidden');
+    if (!isCharacter(c)) throw new Error('invalid character');
+    let png: Buffer | null = null;
+    if (rawPhoto !== null && rawPhoto !== undefined) {
+      const bytes = rawPhoto instanceof ArrayBuffer ? new Uint8Array(rawPhoto)
+        : ArrayBuffer.isView(rawPhoto) ? new Uint8Array(rawPhoto.buffer, rawPhoto.byteOffset, rawPhoto.byteLength) : null;
+      if (!bytes) throw new Error('invalid photo');
+      if (bytes.byteLength > MAX_PHOTO_INPUT_BYTES) throw new Error('photo too large');
+      png = await resizePhoto(Buffer.from(bytes));
+    }
+    const next: Character = { ...c };
+    store.saveCharacter(next);
+    if (png) store.savePhoto(png); else store.clearPhoto();
+    character = next;
+    photo = store.loadPhoto();
+    transport.broadcast(hello());
+    pushState();
+    const win = builderWindow;
+    setImmediate(() => { if (win && !win.isDestroyed()) win.close(); });
+  });
+  ipcMain.on('deskknock:editCharacter', (e) => { if (fromMain(e)) openBuilder(); });
+
   // ---------- windows ----------
+  const openBuilder = (): void => {
+    if (builderWindow && !builderWindow.isDestroyed()) {
+      if (builderWindow.isMinimized()) builderWindow.restore();
+      builderWindow.show();
+      builderWindow.focus();
+      return;
+    }
+    const win = new BrowserWindow({
+      width: 760,
+      height: 520,
+      title: 'My character',
+      autoHideMenuBar: true,
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+    builderWindow = win;
+    win.on('closed', () => { if (builderWindow === win) builderWindow = null; });
+    if (process.env['ELECTRON_RENDERER_URL']) win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/builder/index.html`);
+    else win.loadFile(join(__dirname, '../renderer/builder/index.html'));
+  };
+
   const createMainWindow = (): void => {
     const win = new BrowserWindow({
       width: 900,
@@ -234,6 +292,7 @@ export function startApp(): () => void {
   };
 
   createMainWindow();
+  if (firstRun) openBuilder();
   tray = createTray({
     paused: settings.paused,
     onOpen: showMainWindow,

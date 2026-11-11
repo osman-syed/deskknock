@@ -20,13 +20,13 @@ export const DEFAULT_CHARACTER: Character = {
 
 const MAX_LEN = 32;
 const COLOR = /^#[0-9a-fA-F]{6}$/;
-const FACES = ['oval', 'round', 'square'];
-const HAIRS = ['short-1', 'short-2', 'long-1', 'curly-1', 'bald'];
-const GLASSES = ['none', 'round', 'square'];
-const BEARDS = ['none', 'stubble', 'full'];
+export const FACES: readonly string[] = ['oval', 'round', 'square'];
+export const HAIRS: readonly string[] = ['short-1', 'short-2', 'long-1', 'curly-1', 'bald'];
+export const GLASSES: readonly string[] = ['none', 'round', 'square'];
+export const BEARDS: readonly string[] = ['none', 'stubble', 'full'];
 
 const isColor = (v: unknown): boolean => typeof v === 'string' && v.length <= MAX_LEN && COLOR.test(v);
-const isOneOf = (v: unknown, list: string[]): boolean =>
+const isOneOf = (v: unknown, list: readonly string[]): boolean =>
   typeof v === 'string' && v.length <= MAX_LEN && list.includes(v);
 
 export function isCharacter(x: unknown): x is Character {

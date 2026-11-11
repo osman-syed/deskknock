@@ -9,6 +9,7 @@ export interface DeskKnockApi {
   knock(peerId: string): void;
   cancel(peerId: string): void;
   saveSettings(s: SettingsT): void;
+  editCharacter(): void;
 }
 
 declare global {
@@ -45,7 +46,7 @@ export function App(): JSX.Element {
         <div role="alert" style={styles.error}>{state.networkError}</div>
       )}
       {state && showSettings && (
-        <Settings settings={state.settings} onSave={(s) => window.deskknock.saveSettings(s)} onClose={() => setShowSettings(false)} />
+        <Settings settings={state.settings} onSave={(s) => window.deskknock.saveSettings(s)} onClose={() => setShowSettings(false)} onEditCharacter={() => window.deskknock.editCharacter()} />
       )}
       {!state ? (
         <p style={styles.empty}>Starting…</p>

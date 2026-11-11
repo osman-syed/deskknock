@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Settings as SettingsT } from '../../core/store';
 
-export function Settings(props: { settings: SettingsT; onSave(s: SettingsT): void; onClose(): void }): JSX.Element {
+export function Settings(props: { settings: SettingsT; onSave(s: SettingsT): void; onClose(): void; onEditCharacter(): void }): JSX.Element {
   const s = props.settings;
   const [name, setName] = useState(s.name);
   const [muted, setMuted] = useState(s.muted);
@@ -44,6 +44,7 @@ export function Settings(props: { settings: SettingsT; onSave(s: SettingsT): voi
         Manual peers (one per line, ip or ip:port)
         <textarea value={manual} onChange={(e) => setManual(e.target.value)} rows={4} />
       </label>
+      <button onClick={props.onEditCharacter} style={{ marginBottom: 12 }}>Edit my character</button>
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={save} disabled={!portValid}>Save</button>
         <button onClick={props.onClose}>Close</button>
