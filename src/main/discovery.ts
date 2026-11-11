@@ -1,6 +1,7 @@
 import { Bonjour } from 'bonjour-service';
+import { DEFAULT_PORT } from '../core/store';
 
-export const DEFAULT_PORT = 47321;
+export { DEFAULT_PORT };
 const RETRY_MS = 30_000;
 
 export interface BonjourService {

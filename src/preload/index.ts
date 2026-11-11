@@ -13,3 +13,14 @@ contextBridge.exposeInMainWorld('overlay', {
     ipcRenderer.send('overlay:answer', id, a)
   }
 })
+
+// Main window API.
+contextBridge.exposeInMainWorld('deskknock', {
+  onState: (cb: (s: unknown) => void) => {
+    ipcRenderer.on('deskknock:state', (_e, s) => cb(s))
+    ipcRenderer.send('deskknock:ready') // main replies with the current state
+  },
+  knock: (peerId: string) => ipcRenderer.send('deskknock:knock', peerId),
+  cancel: (peerId: string) => ipcRenderer.send('deskknock:cancel', peerId),
+  saveSettings: (s: unknown) => ipcRenderer.send('deskknock:saveSettings', s)
+})

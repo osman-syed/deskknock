@@ -13,6 +13,8 @@ export interface LockBus {
 async function connectSessionBus(): Promise<LockBus> {
   const { sessionBus } = await import('dbus-next')
   const bus = sessionBus()
+  // dbus-next emits 'error' asynchronously (e.g. bus gone); unhandled it would crash main.
+  bus.on('error', (err: unknown) => console.warn('[lockWatcher] dbus error:', (err as Error)?.message ?? err))
   return {
     async getScreenSaver() {
       const obj = await bus.getProxyObject('org.gnome.ScreenSaver', '/org/gnome/ScreenSaver')

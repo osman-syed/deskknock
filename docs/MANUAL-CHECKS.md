@@ -19,3 +19,11 @@ Add a temporary dev menu item "Test knock from self", which is removed in Task 9
 Lock the screen (Super+L) and knock from a second instance → the caller sees `Away`; unlock → the overlay appears. Toggle `Pause knocks` → the caller's button is disabled with `Paused`.
 
 (Needs the Task 9 wiring; the tray icon, its menu and hide-on-close can be checked now with `npm run dev`.)
+
+## Task 9
+
+Manual end-to-end (two machines): knock → overlay → `Coming` → the caller sees a `Coming!` peek for 8 s and the row shows `Coming`. Repeat with `Busy · 5 min` and wait 5 min for the reminder. Quit the caller's app mid-knock → the receiver's overlay closes after about 30 s.
+
+Reply peek arrives while an incoming knock is visible → both are visible on different edges; the knock's buttons still work.
+
+(The Task 7 "Dev → Test knock from self" menu item is gone; the window has Electron's default menu again.)
