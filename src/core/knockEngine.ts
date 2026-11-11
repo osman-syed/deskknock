@@ -196,6 +196,7 @@ export class KnockEngine {
 
   private onKnock(fromPeerId: string, id: string, reminder = false): void {
     if (this.queue.some((q) => q.id === id)) return;
+    if (!reminder) this.dropReminders(fromPeerId);
     if (this.paused) {
       if (!reminder) this.fx.send(fromPeerId, { t: 'status', id, state: 'paused' });
       return;
@@ -212,6 +213,19 @@ export class KnockEngine {
     }
     if (!reminder) this.fx.send(fromPeerId, { t: 'status', id, state: 'queued' });
     this.refreshCurrent();
+  }
+
+  /** A fresh knock supersedes the caller's busy reminders (pending or queued); their old id is stale. */
+  private dropReminders(fromPeerId: string): void {
+    this.reminders = this.reminders.filter((r) => r.fromPeerId !== fromPeerId);
+    const stale = this.queue.filter((q) => q.reminder && q.fromPeerId === fromPeerId);
+    for (const k of stale) {
+      this.removeFromQueue(k);
+      if (this.current === k) {
+        this.current = null;
+        this.fx.hideIncoming(k.id);
+      }
+    }
   }
 
   private onCancel(fromPeerId: string, id: string): void {

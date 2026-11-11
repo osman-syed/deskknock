@@ -235,6 +235,41 @@ describe('receiver side', () => {
     expect(fx.sent.at(-1)).toEqual({ peerId: A, m: { t: 'reply', id: 'k1', answer: 'coming' } });
   });
 
+  it('a new knock from the same caller cancels their pending busy reminder', () => {
+    eng.onMessage(A, { t: 'knock', id: 'k1' });
+    eng.answer('k1', 'busy5');
+    now += 30_000; eng.tick();
+    eng.onMessage(A, { t: 'knock', id: 'k2' });
+    expect(fx.shown.at(-1)).toEqual({ k: { id: 'k2', fromPeerId: A, reminder: false }, behind: 0 });
+    eng.answer('k2', 'coming');
+    const shownBefore = fx.shown.length;
+    now += 300_000; eng.tick();
+    expect(fx.shown).toHaveLength(shownBefore);
+    expect(fx.shown.some((s) => s.k.id === 'k1' && s.k.reminder)).toBe(false);
+  });
+
+  it('a new knock from the same caller drops their queued reminder', () => {
+    eng.onMessage(A, { t: 'knock', id: 'k1' });
+    eng.answer('k1', 'busy5');
+    eng.onMessage(C, { t: 'knock', id: 'c1' });
+    now += 300_000; eng.tick(); // reminder for k1 queues behind C's knock
+    expect(fx.shown.at(-1)).toEqual({ k: { id: 'c1', fromPeerId: C, reminder: false }, behind: 1 });
+    eng.onMessage(A, { t: 'knock', id: 'k2' });
+    expect(fx.shown.at(-1)).toEqual({ k: { id: 'c1', fromPeerId: C, reminder: false }, behind: 1 });
+    eng.answer('c1', 'coming');
+    expect(fx.shown.at(-1)).toEqual({ k: { id: 'k2', fromPeerId: A, reminder: false }, behind: 0 });
+  });
+
+  it('a new knock from the same caller replaces their shown reminder', () => {
+    eng.onMessage(A, { t: 'knock', id: 'k1' });
+    eng.answer('k1', 'busy5');
+    now += 300_000; eng.tick();
+    expect(fx.shown.at(-1)).toEqual({ k: { id: 'k1', fromPeerId: A, reminder: true }, behind: 0 });
+    eng.onMessage(A, { t: 'knock', id: 'k2' });
+    expect(fx.hidden.at(-1)).toBe('k1');
+    expect(fx.shown.at(-1)).toEqual({ k: { id: 'k2', fromPeerId: A, reminder: false }, behind: 0 });
+  });
+
   it('caller cancel hides overlay', () => {
     eng.onMessage(A, { t: 'knock', id: 'k1' });
     eng.onMessage(A, { t: 'cancel', id: 'k1' });
