@@ -268,7 +268,7 @@ export class KnockEngine {
   peerPresence(peerId: string, p: { paused: boolean; away: boolean }): void {
     this.presence.set(peerId, p);
     const o = this.outgoing.get(peerId);
-    if (o && (isPending(o.view) || o.answeredAt !== undefined)) return;
+    if (o && (isUnanswered(o.view) || o.answeredAt !== undefined)) return;
     this.emitIdle(peerId);
   }
 

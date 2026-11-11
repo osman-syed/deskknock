@@ -92,6 +92,14 @@ describe('caller side', () => {
     expect(fx.sent).toHaveLength(1);
   });
 
+  it('presence update keeps not-answered view', () => {
+    knockB();
+    now += 120_000; eng.tick();
+    eng.peerPresence(B, { paused: false, away: false });
+    expect(lastView(B)).toEqual({ kind: 'not-answered' });
+    expect(eng.knock(B)).toBe(false);
+  });
+
   it('reply coming shows reply peek and view', () => {
     const id = knockB();
     eng.onMessage(B, { t: 'reply', id, answer: 'coming' });
