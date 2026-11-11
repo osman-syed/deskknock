@@ -4,7 +4,8 @@ import { CharacterSvg } from '../shared/CharacterSvg';
 
 export interface BuilderApi {
   load(): Promise<{ character: Character; photo: Uint8Array | null }>;
-  save(c: Character, photo: Uint8Array | null): Promise<unknown>;
+  /** photo: bytes = new photo, null = remove the stored photo, undefined = keep the stored photo. */
+  save(c: Character, photo?: Uint8Array | null): Promise<unknown>;
 }
 
 declare global {
@@ -24,12 +25,18 @@ export function Builder(): JSX.Element {
   const [photo, setPhoto] = useState<{ bytes: Uint8Array; mime: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [photoTouched, setPhotoTouched] = useState(false);
 
   useEffect(() => {
-    void window.builder.load().then((r) => {
-      setC(r.character);
-      setPhoto(r.photo ? { bytes: r.photo, mime: 'image/png' } : null);
-    });
+    window.builder.load().then(
+      (r) => {
+        setC(r.character);
+        setPhoto(r.photo ? { bytes: r.photo, mime: 'image/png' } : null);
+        setLoaded(true);
+      },
+      () => setError('Could not load your character. Close this window and try again.'),
+    );
   }, []);
 
   const set = <K extends keyof Character>(k: K, v: Character[K]): void => setC((p) => ({ ...p, [k]: v }));
@@ -39,13 +46,16 @@ export function Builder(): JSX.Element {
     if (file.size > MAX_PHOTO_FILE) { setError('Photo is too large (max 10 MB).'); return; }
     setError(null);
     setPhoto({ bytes: new Uint8Array(await file.arrayBuffer()), mime: file.type || 'image/png' });
+    setPhotoTouched(true);
   };
 
   const save = async (): Promise<void> => {
+    if (!loaded) return;
     setSaving(true);
     setError(null);
     try {
-      await window.builder.save(c, photo ? photo.bytes : null);
+      if (photoTouched) await window.builder.save(c, photo ? photo.bytes : null);
+      else await window.builder.save(c);
     } catch {
       setError('Could not save. Is the photo a valid image?');
       setSaving(false);
@@ -84,11 +94,11 @@ export function Builder(): JSX.Element {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {photo && <img alt="Photo preview" src={toDataUrl(photo.bytes, photo.mime)} width={48} height={48} style={{ objectFit: 'cover' }} />}
             <input type="file" accept="image/*" aria-label="Choose photo" onChange={(e) => void pick(e.target.files?.[0])} />
-            {photo && <button onClick={() => setPhoto(null)}>Remove photo</button>}
+            {photo && <button onClick={() => { setPhoto(null); setPhotoTouched(true); }}>Remove photo</button>}
           </div>
         </div>
         {error && <div role="alert" style={{ color: '#b00020' }}>{error}</div>}
-        <button onClick={() => void save()} disabled={saving}>Save</button>
+        <button onClick={() => void save()} disabled={saving || !loaded}>Save</button>
       </div>
     </div>
   );

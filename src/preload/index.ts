@@ -29,5 +29,5 @@ contextBridge.exposeInMainWorld('deskknock', {
 // Character builder window API.
 contextBridge.exposeInMainWorld('builder', {
   load: () => ipcRenderer.invoke('builder:load'),
-  save: (c: unknown, photo: Uint8Array | null) => ipcRenderer.invoke('builder:save', c, photo)
+  save: (c: unknown, photo?: Uint8Array | null) => ipcRenderer.invoke('builder:save', c, photo)
 })

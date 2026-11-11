@@ -219,6 +219,7 @@ export function startApp(): () => void {
   ipcMain.handle('builder:save', async (e, c: unknown, rawPhoto: unknown) => {
     if (!fromBuilder(e)) throw new Error('forbidden');
     if (!isCharacter(c)) throw new Error('invalid character');
+    // undefined = keep the stored photo untouched; null = remove it; bytes = replace it.
     let png: Buffer | null = null;
     if (rawPhoto !== null && rawPhoto !== undefined) {
       const bytes = rawPhoto instanceof ArrayBuffer ? new Uint8Array(rawPhoto)
@@ -229,9 +230,10 @@ export function startApp(): () => void {
     }
     const next: Character = { ...c };
     store.saveCharacter(next);
-    if (png) store.savePhoto(png); else store.clearPhoto();
+    if (png) store.savePhoto(png);
+    else if (rawPhoto === null) store.clearPhoto();
     character = next;
-    photo = store.loadPhoto();
+    if (rawPhoto !== undefined) photo = store.loadPhoto();
     transport.broadcast(hello());
     pushState();
     const win = builderWindow;
