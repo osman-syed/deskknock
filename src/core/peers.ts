@@ -33,6 +33,7 @@ function cmp(a: number[], b: number[]): number {
 
 export class PeerRegistry extends EventEmitter {
   private readonly peers = new Map<string, Entry>();
+  private readonly pendingOnline = new Set<string>(); // setOnline(true) seen before hello
 
   constructor(cached: PeerProfile[] = []) {
     super();
@@ -43,13 +44,17 @@ export class PeerRegistry extends EventEmitter {
     const { t: _t, ...profile } = hello;
     const e = this.peers.get(hello.peerId);
     if (e) e.profile = profile;
-    else this.peers.set(hello.peerId, { profile, online: false, paused: false, away: false });
+    else this.peers.set(hello.peerId, { profile, online: this.pendingOnline.has(hello.peerId), paused: false, away: false });
+    this.pendingOnline.delete(hello.peerId);
     this.emit('changed');
   }
 
   setOnline(peerId: string, online: boolean): void {
     const e = this.peers.get(peerId);
-    if (!e) return;
+    if (!e) {
+      if (online) this.pendingOnline.add(peerId); else this.pendingOnline.delete(peerId);
+      return;
+    }
     e.online = online;
     if (!online) { e.paused = false; e.away = false; }
     this.emit('changed');

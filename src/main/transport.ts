@@ -12,6 +12,8 @@ export interface TransportOpts {
   hasPhoto: (hash: string) => boolean;
   pingMs?: number;
   timeoutMs?: number;
+  /** Window (ms) in which two sockets for one peer count as a simultaneous mutual dial. */
+  simultaneousMs?: number;
 }
 
 interface Conn {
@@ -21,6 +23,7 @@ interface Conn {
   photoHash: string | null;
   requested: Set<string>;
   lastSeen: number;
+  registeredAt: number;
 }
 
 /**
@@ -99,7 +102,7 @@ export class Transport extends EventEmitter {
   }
 
   private attach(ws: WebSocket, outgoing: boolean): void {
-    const c: Conn = { ws, outgoing, peerId: null, photoHash: null, requested: new Set(), lastSeen: Date.now() };
+    const c: Conn = { ws, outgoing, peerId: null, photoHash: null, requested: new Set(), lastSeen: Date.now(), registeredAt: 0 };
     this.conns.add(c);
     const sendHello = () => this.sendRaw(c, this.opts.hello());
     if (ws.readyState === WebSocket.OPEN) sendHello();
@@ -153,17 +156,20 @@ export class Transport extends EventEmitter {
 
   private onHello(c: Conn, h: Hello): void {
     if (c.peerId && c.peerId !== h.peerId) { console.warn('dropping hello with changed peerId'); return; }
+    let isNew = false;
     if (!c.peerId) {
       if (h.peerId === this.opts.hello().peerId) { c.ws.close(); return; } // dialed ourselves
       const old = this.byPeer.get(h.peerId);
       if (old && old !== c && !this.prefer(c, old, h.peerId)) { c.ws.close(); return; }
       c.peerId = h.peerId;
+      c.registeredAt = Date.now();
       this.byPeer.set(h.peerId, c);
-      if (old && old !== c) { old.ws.close(); }
-      else this.emit('online', h.peerId, true);
+      if (old && old !== c) old.ws.close(); // replaced: no offline event
+      isNew = !old;
     }
     c.photoHash = h.photoHash;
-    this.emit('hello', h.peerId, h);
+    this.emit('hello', h.peerId, h); // before 'online' so consumers know the peer first
+    if (isNew) this.emit('online', h.peerId, true);
     if (h.photoHash && !this.opts.hasPhoto(h.photoHash) && !c.requested.has(h.photoHash)) {
       c.requested.add(h.photoHash);
       this.sendRaw(c, { t: 'getPhoto' });
@@ -173,6 +179,7 @@ export class Transport extends EventEmitter {
   /** Should the new socket replace the existing one for the same peer? */
   private prefer(fresh: Conn, old: Conn, theirId: string): boolean {
     if (fresh.outgoing === old.outgoing) return true; // newest wins
+    if (Date.now() - old.registeredAt > (this.opts.simultaneousMs ?? 5_000)) return true; // not simultaneous
     // simultaneous dial: the side with the lower peerId keeps its outgoing socket
     const keepOutgoing = this.opts.hello().peerId < theirId;
     return fresh.outgoing === keepOutgoing;

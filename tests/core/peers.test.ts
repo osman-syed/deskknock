@@ -50,4 +50,14 @@ describe('PeerRegistry', () => {
     const r = new PeerRegistry([{ peerId: 'x', name: 'X', appVersion: '1.0.0', protocolVersion: 1, character: DEFAULT_CHARACTER, photoHash: null }]);
     expect(r.list()[0]).toMatchObject({ peerId: 'x', online: false });
   });
+  it('online state applies regardless of setOnline/hello order', () => {
+    const r = new PeerRegistry();
+    r.setOnline('x', true);
+    r.upsertFromHello(hello('x', 'X'));
+    expect(r.list()[0].online).toBe(true);
+    const r2 = new PeerRegistry();
+    r2.upsertFromHello(hello('y', 'Y'));
+    r2.setOnline('y', true);
+    expect(r2.list()[0].online).toBe(true);
+  });
 });

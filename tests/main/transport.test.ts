@@ -150,4 +150,38 @@ describe('Transport', () => {
     await once(a, 'online', (id, on) => id === 'x' && on);
     await once(a, 'online', (id, on) => id === 'x' && !on);
   });
+
+  it('emits hello before online on first contact', async () => {
+    const a = await mk('a'), b = await mk('b');
+    const order: string[] = [];
+    b.on('hello', () => order.push('hello'));
+    b.on('online', () => order.push('online'));
+    const on = once(b, 'online', (id, o) => id === 'a' && o);
+    a.connect('127.0.0.1', b.port);
+    await on;
+    expect(order).toEqual(['hello', 'online']);
+  });
+
+  it('opposite-direction socket after the simultaneous window replaces the old one', async () => {
+    const a = await mk('a', { simultaneousMs: 100 }), b = await mk('b', { simultaneousMs: 100 });
+    const events: string[] = [];
+    for (const [t, n] of [[a, 'a'], [b, 'b']] as const) t.on('online', (id, o) => events.push(`${n}:${id}:${o}`));
+    const up = Promise.all([
+      once(a, 'online', (id, o) => id === 'b' && o),
+      once(b, 'online', (id, o) => id === 'a' && o),
+    ]);
+    a.connect('127.0.0.1', b.port); // a < b: old socket is a's outgoing
+    await up;
+    await new Promise((r) => setTimeout(r, 300));
+    b.connect('127.0.0.1', a.port);
+    await new Promise((r) => setTimeout(r, 300));
+    expect(events.sort()).toEqual(['a:b:true', 'b:a:true']);
+    const ga = once<[string, Message]>(a, 'message');
+    b.send('a', { t: 'knock', id: 'k1' });
+    expect((await ga)[1]).toEqual({ t: 'knock', id: 'k1' });
+    const gb = once<[string, Message]>(b, 'message');
+    a.send('b', { t: 'knock', id: 'k2' });
+    expect((await gb)[1]).toEqual({ t: 'knock', id: 'k2' });
+    expect(a.isConnected('b') && b.isConnected('a')).toBe(true);
+  });
 });
