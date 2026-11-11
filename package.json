@@ -4,6 +4,7 @@
   "private": true,
   "description": "Knock on a teammate's screen from your desk (LAN, Linux)",
   "main": "./out/main/index.js",
+  "desktopName": "deskknock.desktop",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "tsc --noEmit && electron-vite build",
