@@ -21,3 +21,10 @@ export function overlayBounds(edge: Edge, workArea: Rect, size = { w: 460, h: 32
     case 'right': return { x: right, y: workArea.y + Math.round((workArea.height - h) * 0.6), width: w, height: h };
   }
 }
+
+/** Random non-top edge, avoiding `exclude` when given. */
+export function pickEdgeExcept(exclude: Edge | null, rand: () => number = Math.random): Edge {
+  const pool = EDGES.filter((e) => e !== exclude);
+  const i = Math.min(pool.length - 1, Math.max(0, Math.floor(rand() * pool.length)));
+  return pool[i];
+}

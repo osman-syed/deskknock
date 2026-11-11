@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickEdge, overlayBounds, type Edge } from '../../src/core/edge';
+import { pickEdge, pickEdgeExcept, overlayBounds, type Edge } from '../../src/core/edge';
 
 const wa = { x: 10, y: 20, width: 1920, height: 1040 };
 const EDGES: Edge[] = ['bottom-left', 'bottom-right', 'left', 'right'];
@@ -22,5 +22,9 @@ describe('edge', () => {
     const bl = overlayBounds('bottom-left', wa);
     expect(bl.x).toBe(wa.x);
     expect(bl.y + bl.height).toBe(wa.y + wa.height);
+  });
+  it('pickEdgeExcept never returns the excluded edge', () => {
+    for (const ex of EDGES) for (const r of [0, 0.3, 0.6, 0.999]) expect(pickEdgeExcept(ex, () => r)).not.toBe(ex);
+    expect(EDGES).toContain(pickEdgeExcept(null, () => 0.5));
   });
 });
