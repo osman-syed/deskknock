@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin:0; background:transparent; overflow:hidden; font-family: Inter, system-ui, sans-serif; user-select:none; }
+  .peek { position:absolute; right:40px; bottom:-6px; width:150px; height:150px; animation: rise 1.1s cubic-bezier(.34,1.56,.64,1) both; }
+  .peek svg { width:100%; height:100%; display:block; }
+  @keyframes rise { 0% { transform: translateY(105%); } 70% { transform: translateY(-4%); } 100% { transform: translateY(0); } }
+  .pupil { animation: look 3s ease-in-out 1.2s infinite; }
+  @keyframes look { 0%,100% { transform: translate(0,0); } 40%,60% { transform: translate(-3px,-2px); } }
+  .bubble { position:absolute; right:175px; bottom:120px; background:#fff; color:#1a1c26; border-radius:16px; padding:14px 16px 12px; width:230px;
+            box-shadow:0 6px 18px rgba(0,0,0,.3); animation: pop .35s ease-out 1s both; }
+  .bubble::after { content:""; position:absolute; right:-6px; bottom:22px; width:18px; height:18px; background:#fff; transform:rotate(45deg); border-radius:3px; }
+  @keyframes pop { 0% { opacity:0; transform: scale(.6) translateY(10px); } 100% { opacity:1; transform: none; } }
+  .hi { font-size:12px; color:#7a7f8f; margin-bottom:2px; }
+  .who { font-size:15px; font-weight:600; } .who b { color:#e0663a; }
+  .acts { display:flex; gap:8px; margin-top:12px; }
+  .acts button { flex:1; font: 600 12px Inter, system-ui, sans-serif; padding:7px 0; border-radius:999px; border:0; cursor:pointer; }
+  .yes { background:#1f9d55; color:#fff; } .no { background:#eef0f4; color:#3a3d4a; }
+</style></head>
+<body>
+  <div class="bubble"><div class="hi">Hi! Look here 👋</div><div class="who"><b>Osman</b> is calling you</div>
+    <div class="acts"><button class="yes" onclick="spike.reply('Coming')">Coming</button><button class="no" onclick="spike.reply('Busy 5 min')">Busy · 5 min</button></div></div>
+  <div class="peek">
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="98" rx="62" ry="60" fill="#2b1d16"/>
+    <path d="M58 200 Q60 165 100 162 Q140 165 142 200 Z" fill="#3b6fe0"/>
+    <ellipse cx="100" cy="112" rx="54" ry="56" fill="#e8b58f"/>
+    <ellipse cx="46" cy="116" rx="9" ry="13" fill="#dca37c"/>
+    <ellipse cx="154" cy="116" rx="9" ry="13" fill="#dca37c"/>
+    <path d="M44 104 Q46 50 100 48 Q156 50 158 102 Q140 76 112 74 Q120 84 108 88 Q90 72 66 84 Q52 92 44 104 Z" fill="#2b1d16"/>
+    <path d="M68 96 Q78 89 88 94" stroke="#2b1d16" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M112 94 Q122 89 132 96" stroke="#2b1d16" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="80" cy="112" rx="11" ry="12" fill="#fff"/>
+    <ellipse cx="120" cy="112" rx="11" ry="12" fill="#fff"/>
+    <g class="pupil">
+      <circle cx="77" cy="110" r="6" fill="#2a1a12"/><circle cx="75" cy="108" r="2" fill="#fff"/>
+      <circle cx="117" cy="110" r="6" fill="#2a1a12"/><circle cx="115" cy="108" r="2" fill="#fff"/>
+    </g>
+    <ellipse cx="68" cy="134" rx="9" ry="5" fill="#f08a7a" opacity=".45"/>
+    <ellipse cx="132" cy="134" rx="9" ry="5" fill="#f08a7a" opacity=".45"/>
+    <path d="M86 140 Q100 154 114 140" stroke="#8a3b2a" stroke-width="4" fill="#fff" stroke-linecap="round" stroke-linejoin="round"/>
+    <g fill="#e8b58f" stroke="#c98f6b" stroke-width="1.5">
+      <rect x="30" y="176" width="44" height="30" rx="12"/><rect x="126" y="176" width="44" height="30" rx="12"/>
+    </g>
+    <g stroke="#c98f6b" stroke-width="1.5">
+      <line x1="41" y1="178" x2="41" y2="190"/><line x1="52" y1="177" x2="52" y2="190"/><line x1="63" y1="178" x2="63" y2="190"/>
+      <line x1="137" y1="178" x2="137" y2="190"/><line x1="148" y1="177" x2="148" y2="190"/><line x1="159" y1="178" x2="159" y2="190"/>
+    </g>
+  </svg>
+  </div>
+</body></html>
