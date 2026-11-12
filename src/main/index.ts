@@ -8,7 +8,8 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   let showMainWindow: (() => void) | null = null
-  app.on('second-instance', () => showMainWindow?.())
+  // A background (--hidden) launch while already running must not pop the window up.
+  app.on('second-instance', (_e, argv) => { if (!argv.includes('--hidden')) showMainWindow?.() })
   app.whenReady().then(() => { showMainWindow = startApp() })
 
   // Keep running in the tray when the window is closed.
