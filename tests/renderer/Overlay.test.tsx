@@ -19,6 +19,14 @@ describe('Overlay', () => {
     expect(screen.getByRole('button', { name: 'Coming' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Busy · 5 min' })).toBeTruthy();
   });
+  it('sanitises the caller name in the knock bubble', () => {
+    const { container } = render(<Overlay payload={{ ...base, name: 'Sa\nra\u202E ' + 'x'.repeat(60) }} onAnswer={() => {}} />);
+    expect(container.querySelector('b')!.textContent).toBe('Sa ra ' + 'x'.repeat(33) + '…');
+  });
+  it('sanitises the caller name in the reminder copy', () => {
+    render(<Overlay payload={{ ...base, reminder: true, name: ' \n ' }} onAnswer={() => {}} />);
+    expect(screen.getByText('You said 5 min — Unnamed is waiting')).toBeTruthy();
+  });
   it('reminder copy', () => {
     render(<Overlay payload={{ ...base, reminder: true }} onAnswer={() => {}} />);
     expect(screen.getByText('You said 5 min — Sara is waiting')).toBeTruthy();

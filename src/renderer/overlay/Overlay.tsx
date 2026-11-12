@@ -3,6 +3,7 @@ import type { Answer } from '../../core/protocol';
 import type { Character } from '../../core/character';
 import type { Edge } from '../../core/edge';
 import { CharacterSvg } from '../shared/CharacterSvg';
+import { displayName } from '../../core/displayName';
 import chimeUrl from '../../../resources/chime.wav?url';
 
 export interface OverlayPayload {
@@ -62,14 +63,15 @@ export function Overlay(props: { payload: OverlayPayload; onAnswer: (id: string,
   }, [mountKey, knock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const placement = side ? 'side' : `bottom ${faceRight ? 'l' : 'r'}`;
+  const name = displayName(p.name);
   const copy = knock
     ? p.reminder
-      ? <div className="dk-who">You said 5 min — {p.name} is waiting</div>
+      ? <div className="dk-who">You said 5 min — {name} is waiting</div>
       : <>
           <div className="dk-hi">Hi! Look here 👋</div>
           <div className="dk-who">
             {p.photo && <img className="dk-photo" src={p.photo} alt="" />}
-            <span><b>{p.name}</b> is calling you</span>
+            <span><b>{name}</b> is calling you</span>
           </div>
         </>
     : <div className="dk-who">{p.answer === 'coming' ? 'Coming!' : 'Busy, ~5 min'}</div>;

@@ -48,6 +48,7 @@ Step 5 (second machine): install on one teammate's machine and run Task 9 Step 5
 2. Random character: tray menu -> `Open DeskKnock` -> Settings -> Edit my character -> a (random) character is shown, not the default one. Close the windows.
 3. Repeat step 1 with plain `deskknock` (fresh config again) -> still no window on first run.
 4. Tray menu lists teammates (online first, by name) as `Name — Online` / `Offline` / `Paused`...; offline/paused rows are greyed out. With no teammates it shows "No teammates online yet".
-5. Click a teammate -> they get the knock; the row shows `Knocking… (click to cancel)`; clicking it cancels. Knock again and have them reply -> the row updates (`Coming` / `Busy until hh:mm` / `Seen`) within about a second.
-6. Log out and back in -> DeskKnock is running in the tray with no window.
+5. Click a teammate -> they get the knock; the row shows `Name — Knocking… · Cancel`; clicking it cancels. Knock again and have them reply -> the row updates (`Coming` / `Busy until hh:mm` / `Seen`) within about a second.
+6. Log out and back in -> DeskKnock is running in the tray with no window (started by `/etc/xdg/autostart/deskknock.desktop`; no new `~/.config/autostart/deskknock.desktop` is created).
+6a. A teammate with a long name or a name containing a newline shows as one line, at most 40 characters ending in `…`, in the tray, window and overlay.
 7. `sudo apt remove deskknock` -> `/etc/xdg/autostart/deskknock.desktop` is gone (`ls /etc/xdg/autostart/deskknock.desktop` fails). Restore your config with `mv ~/.config/DeskKnock.bak ~/.config/DeskKnock` if wanted.

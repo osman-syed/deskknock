@@ -32,7 +32,13 @@ export function createTray(opts: TrayOptions): TrayHandle {
   const tray = new Tray(icon)
   tray.setToolTip('DeskKnock')
 
+  let lastKey: string | null = null
   const build = (teammates: TrayTeammate[]): void => {
+    // Rebuilding an identical menu makes some panels flicker/close it; skip when nothing visible changed.
+    // (Same label + enabled means the same click action, so the old closures are equivalent.)
+    const key = JSON.stringify([opts.isPaused(), teammates.map((t) => [t.label, t.enabled])])
+    if (key === lastKey) return
+    lastKey = key
     const rows: MenuItemConstructorOptions[] = teammates.length
       ? teammates.map((t) => ({ label: escapeLabel(t.label), enabled: t.enabled, click: () => t.onClick() }))
       : [{ label: 'No teammates online yet', enabled: false }]

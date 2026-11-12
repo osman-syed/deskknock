@@ -1,6 +1,7 @@
 import type { OutgoingView } from '../../core/knockEngine';
 import type { PeerView } from '../../core/peers';
 import { isCancellable, statusText } from '../../core/statusText';
+import { displayName } from '../../core/displayName';
 import { CharacterSvg } from '../shared/CharacterSvg';
 
 export function PeerRow(props: {
@@ -20,7 +21,7 @@ export function PeerRow(props: {
         style={{ ...styles.dot, background: peer.online ? '#2fb344' : '#b8b8b8' }}
         title={peer.online ? 'Online' : 'Offline'}
       />
-      <span style={styles.name}>{peer.name || 'Unnamed'}</span>
+      <span style={styles.name}>{displayName(peer.name)}</span>
       <span style={styles.status}>{label}</span>
       {cancellable ? (
         <button style={styles.btn} onClick={() => props.onCancel(peer.peerId)}>Cancel</button>

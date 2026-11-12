@@ -86,9 +86,7 @@ export function startApp(): () => void {
 
   // ---------- tray menu (coalesced to at most ~2 rebuilds/s) ----------
   const TRAY_MIN_INTERVAL_MS = 500;
-  const TRAY_TIMED_REFRESH_MS = 5000;
   let trayTimer: NodeJS.Timeout | null = null;
-  let trayRefreshTimer: NodeJS.Timeout | null = null;
   let lastTrayBuild = 0;
   const rebuildTray = (): void => {
     trayTimer = null;
@@ -103,8 +101,6 @@ export function startApp(): () => void {
         else if (i.action === 'cancel') cancelKnock(i.peerId);
       },
     })));
-    if (trayRefreshTimer) clearTimeout(trayRefreshTimer);
-    trayRefreshTimer = items.some((i) => i.timed) ? setTimeout(scheduleTray, TRAY_TIMED_REFRESH_MS) : null;
   };
   const scheduleTray = (): void => {
     if (trayTimer || quitting) return;
@@ -340,13 +336,13 @@ export function startApp(): () => void {
     onQuit: () => app.quit(),
   });
   scheduleTray();
+  // Login autostart comes from /etc/xdg/autostart (the .deb); this only upgrades an old per-user entry.
   if (app.isPackaged) ensureAutostart(homedir(), process.execPath);
 
   app.on('before-quit', () => {
     quitting = true;
     clearInterval(tickTimer);
     if (trayTimer) clearTimeout(trayTimer);
-    if (trayRefreshTimer) clearTimeout(trayRefreshTimer);
     stopLockWatch();
     discovery.stop();
     void transport.close();

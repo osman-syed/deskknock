@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /** Passed by the autostart entry so login starts DeskKnock in the tray without opening the window. */
@@ -16,16 +16,17 @@ function isOutdatedOwnEntry(text: string): boolean {
     && !/^X-GNOME-Autostart-enabled=false\s*$/m.test(text)
 }
 
-/** Writes ~/.config/autostart/deskknock.desktop if absent (or upgrades our own older entry). */
+/**
+ * The .deb installs a system-wide /etc/xdg/autostart/deskknock.desktop, so we no longer create a per-user
+ * entry. An older DeskKnock wrote ~/.config/autostart/deskknock.desktop without --hidden; that file overrides
+ * the system one, so upgrade it in place. User-disabled or foreign files are left alone.
+ */
 export function ensureAutostart(homeDir: string, execPath: string): void {
-  const dir = join(homeDir, '.config', 'autostart')
-  const file = join(dir, 'deskknock.desktop')
-  if (existsSync(file)) {
-    let text: string
-    try { text = readFileSync(file, 'utf8') } catch { return }
-    if (!isOutdatedOwnEntry(text)) return
-  }
-  mkdirSync(dir, { recursive: true })
+  const file = join(homeDir, '.config', 'autostart', 'deskknock.desktop')
+  if (!existsSync(file)) return
+  let text: string
+  try { text = readFileSync(file, 'utf8') } catch { return }
+  if (!isOutdatedOwnEntry(text)) return
   const content = [
     '[Desktop Entry]',
     'Type=Application',

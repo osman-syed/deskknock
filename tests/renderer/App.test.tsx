@@ -40,6 +40,13 @@ describe('App', () => {
     expect(rows).toHaveLength(3);
     expect(rows.map((r) => r.getAttribute('data-peer'))).toEqual(['b', 'c', 'a']);
   });
+  it('shows sanitised peer names', () => {
+    render(<App />);
+    act(() => emit({ ...state(), peers: [mk('z', 'Evil\n\u202Ename', true)] }));
+    const row = screen.getByTestId('peer-row');
+    expect(row.textContent).toContain('Evil name');
+    expect(row.textContent).not.toContain('\u202E');
+  });
   it('clicking Knock calls knock(peerId)', () => {
     render(<App />);
     act(() => emit(state()));

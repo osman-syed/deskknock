@@ -16,6 +16,8 @@ On first start it picks a random character for you and stays in the tray; no win
 
 Knock from the tray icon: its menu lists your teammates with their status (Online, Busy until 14:05, ...). Click a name to knock; while the knock is waiting, click it again to cancel. The menu also has `Pause knocks`, `Open DeskKnock` and `Quit`.
 
+The tray icon needs Ubuntu's built-in AppIndicator extension (enabled by default on Ubuntu); on other GNOME setups install the "AppIndicator and KStatusNotifierItem Support" extension.
+
 You only need the window (tray menu → `Open DeskKnock`) to change your character (Settings → Edit my character) or settings.
 
 ## Firewall

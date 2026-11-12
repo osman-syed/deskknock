@@ -20,7 +20,7 @@ describe('trayTeammateItems', () => {
   });
   it('idle online peer → "Name — Online", knock enabled', () => {
     expect(trayTeammateItems([mk('a', 'Ali')], {}, NOW, 'me')).toEqual([
-      { peerId: 'a', label: 'Ali — Online', enabled: true, action: 'knock', timed: false },
+      { peerId: 'a', label: 'Ali — Online', enabled: true, action: 'knock' },
     ]);
   });
   it('offline peer → disabled', () => {
@@ -42,22 +42,26 @@ describe('trayTeammateItems', () => {
   it('knocking → cancel action', () => {
     const out: Record<string, OutgoingView> = { a: { kind: 'knocking' } };
     const [i] = trayTeammateItems([mk('a', 'Ali')], out, NOW, 'me');
-    expect(i).toMatchObject({ label: 'Ali — Knocking… (click to cancel)', enabled: true, action: 'cancel' });
+    expect(i).toMatchObject({ label: 'Ali — Knocking… · Cancel', enabled: true, action: 'cancel' });
   });
   it('not-answered → cancel action', () => {
     const [i] = trayTeammateItems([mk('a', 'Ali')], { a: { kind: 'not-answered' } }, NOW, 'me');
-    expect(i).toMatchObject({ action: 'cancel', enabled: true });
+    expect(i).toMatchObject({ label: 'Ali — Not answered yet · Cancel', action: 'cancel', enabled: true });
   });
-  it('busy → "Busy until hh:mm", timed, knock only once allowed', () => {
+  it('busy → "Busy until hh:mm", knock only once allowed', () => {
     const until = new Date(2026, 10, 12, 14, 5, 0).getTime();
     const [cool] = trayTeammateItems([mk('a', 'Ali')], { a: { kind: 'busy', until, canKnock: false } }, NOW, 'me');
-    expect(cool).toEqual({ peerId: 'a', label: 'Ali — Busy until 14:05', enabled: false, action: null, timed: true });
+    expect(cool).toEqual({ peerId: 'a', label: 'Ali — Busy until 14:05', enabled: false, action: null });
     const [ok] = trayTeammateItems([mk('a', 'Ali')], { a: { kind: 'busy', until, canKnock: true } }, NOW, 'me');
     expect(ok).toMatchObject({ enabled: true, action: 'knock' });
   });
   it('coming → Coming', () => {
     const [i] = trayTeammateItems([mk('a', 'Ali')], { a: { kind: 'coming', canKnock: false } }, NOW, 'me');
     expect(i).toMatchObject({ label: 'Ali — Coming', enabled: false, action: null });
+  });
+  it('sanitises untrusted names', () => {
+    const [i] = trayTeammateItems([mk('a', 'Bad\nName\u202E' + 'x'.repeat(100))], {}, NOW, 'me');
+    expect(i.label).toBe('Bad Name ' + 'x'.repeat(30) + '… — Online');
   });
   it('unnamed peer → "Unnamed"', () => {
     const [i] = trayTeammateItems([mk('a', '')], {}, NOW, 'me');

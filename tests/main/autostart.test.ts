@@ -1,31 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { mkdirSync, mkdtempSync, readFileSync, statSync, utimesSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ensureAutostart } from '../../src/main/autostart'
 
 describe('autostart', () => {
-  it('ensureAutostart writes desktop file once', () => {
+  it('does not create a new per-user entry (the system-wide /etc/xdg one covers it)', () => {
     const home = mkdtempSync(join(tmpdir(), 'dk-home-'))
     ensureAutostart(home, '/opt/DeskKnock/deskknock')
-    const file = join(home, '.config', 'autostart', 'deskknock.desktop')
-    const text = readFileSync(file, 'utf8')
-    expect(text).toContain('[Desktop Entry]')
-    expect(text).toContain('Type=Application')
-    expect(text).toContain('Name=DeskKnock')
-    expect(text).toContain('Exec=/opt/DeskKnock/deskknock --hidden')
-    expect(text).toContain('X-GNOME-Autostart-enabled=true')
-    utimesSync(file, 1000, 1000)
-    const before = statSync(file).mtimeMs
-    ensureAutostart(home, '/opt/DeskKnock/deskknock')
-    expect(statSync(file).mtimeMs).toBe(before)
-  })
-
-  it('quotes execPath containing spaces', () => {
-    const home = mkdtempSync(join(tmpdir(), 'dk-home-'))
-    ensureAutostart(home, '/opt/Desk Knock/deskknock')
-    const text = readFileSync(join(home, '.config', 'autostart', 'deskknock.desktop'), 'utf8')
-    expect(text).toContain('Exec="/opt/Desk Knock/deskknock" --hidden')
+    expect(existsSync(join(home, '.config', 'autostart', 'deskknock.desktop'))).toBe(false)
   })
 
   const OLD = '[Desktop Entry]\nType=Application\nName=DeskKnock\nComment=x\nExec=/opt/DeskKnock/deskknock\nTerminal=false\n'
@@ -40,7 +23,28 @@ describe('autostart', () => {
     const home = mkdtempSync(join(tmpdir(), 'dk-home-'))
     const file = writeExisting(home, OLD + 'X-GNOME-Autostart-enabled=true\n')
     ensureAutostart(home, '/opt/DeskKnock/deskknock')
-    expect(readFileSync(file, 'utf8')).toContain('Exec=/opt/DeskKnock/deskknock --hidden')
+    const text = readFileSync(file, 'utf8')
+    expect(text).toContain('[Desktop Entry]')
+    expect(text).toContain('Name=DeskKnock')
+    expect(text).toContain('Exec=/opt/DeskKnock/deskknock --hidden')
+    expect(text).toContain('X-GNOME-Autostart-enabled=true')
+  })
+
+  it('quotes execPath containing spaces when upgrading', () => {
+    const home = mkdtempSync(join(tmpdir(), 'dk-home-'))
+    const file = writeExisting(home, OLD)
+    ensureAutostart(home, '/opt/Desk Knock/deskknock')
+    expect(readFileSync(file, 'utf8')).toContain('Exec="/opt/Desk Knock/deskknock" --hidden')
+  })
+
+  it('leaves an up-to-date entry untouched', () => {
+    const home = mkdtempSync(join(tmpdir(), 'dk-home-'))
+    const file = writeExisting(home, OLD + 'X-GNOME-Autostart-enabled=true\n')
+    ensureAutostart(home, '/opt/DeskKnock/deskknock')
+    utimesSync(file, 1000, 1000)
+    const before = statSync(file).mtimeMs
+    ensureAutostart(home, '/opt/DeskKnock/deskknock')
+    expect(statSync(file).mtimeMs).toBe(before)
   })
 
   it('leaves a user-disabled entry alone', () => {
