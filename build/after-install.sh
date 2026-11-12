@@ -52,3 +52,17 @@ if apparmor_status --enabled > /dev/null 2>&1; then
     echo "Skipping the installation of the AppArmor profile as this version of AppArmor does not seem to support the bundled profile"
   fi
 fi
+
+# DeskKnock: start in the tray at every login for all users. A per-user
+# ~/.config/autostart/deskknock.desktop (same filename) overrides this entry.
+mkdir -p /etc/xdg/autostart
+cat > /etc/xdg/autostart/deskknock.desktop <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=DeskKnock
+Comment=Knock on a colleague's screen
+Exec=/opt/${sanitizedProductName}/${executable} --hidden
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+DESKTOP

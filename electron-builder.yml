@@ -22,3 +22,4 @@ linux:
   maintainer: Osman <osmansyed.developer@gmail.com>
 deb:
   afterInstall: build/after-install.sh
+  afterRemove: build/after-remove.sh
