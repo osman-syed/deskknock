@@ -1,10 +1,21 @@
-import { Menu, Tray, app, nativeImage, type MenuItemConstructorOptions } from 'electron'
+import { Menu, Tray, app, nativeImage, type MenuItemConstructorOptions, type NativeImage } from 'electron'
 import { join } from 'node:path'
 
 export interface TrayTeammate {
   label: string
   enabled: boolean
+  /** Face icon, or null while it renders / when rendering is unavailable. */
+  icon: NativeImage | null
+  /** Identifies `icon` for change detection ('' when there is none). */
+  iconKey: string
   onClick(): void
+}
+
+export interface TrayModel {
+  header: string
+  /** Shown (disabled) instead of rows when there are no teammates. */
+  emptyLabel: string
+  teammates: TrayTeammate[]
 }
 
 export interface TrayOptions {
@@ -12,12 +23,14 @@ export interface TrayOptions {
   onTogglePause(paused: boolean): void
   onQuit(): void
   isPaused(): boolean
+  /** Menu shown before the first update. */
+  initial: TrayModel
 }
 
 export interface TrayHandle {
   tray: Tray
-  /** Rebuilds the context menu with these teammate rows at the top. */
-  updateTeammates(items: TrayTeammate[]): void
+  /** Rebuilds the context menu with this header and teammate rows at the top. */
+  update(model: TrayModel): void
   destroy(): void
 }
 
@@ -33,33 +46,44 @@ export function createTray(opts: TrayOptions): TrayHandle {
   tray.setToolTip('DeskKnock')
 
   let lastKey: string | null = null
-  const build = (teammates: TrayTeammate[]): void => {
+  const build = (m: TrayModel): void => {
     // Rebuilding an identical menu makes some panels flicker/close it; skip when nothing visible changed.
     // (Same label + enabled means the same click action, so the old closures are equivalent.)
-    const key = JSON.stringify([opts.isPaused(), teammates.map((t) => [t.label, t.enabled])])
+    const key = JSON.stringify([
+      opts.isPaused(),
+      m.header,
+      m.emptyLabel,
+      m.teammates.map((t) => [t.label, t.enabled, t.iconKey])
+    ])
     if (key === lastKey) return
     lastKey = key
-    const rows: MenuItemConstructorOptions[] = teammates.length
-      ? teammates.map((t) => ({ label: escapeLabel(t.label), enabled: t.enabled, click: () => t.onClick() }))
-      : [{ label: 'No teammates online yet', enabled: false }]
+    const rows: MenuItemConstructorOptions[] = m.teammates.length
+      ? m.teammates.map((t) => ({
+          label: escapeLabel(t.label),
+          enabled: t.enabled,
+          ...(t.icon ? { icon: t.icon } : {}),
+          click: () => t.onClick()
+        }))
+      : [{ label: escapeLabel(m.emptyLabel), enabled: false }]
     tray.setContextMenu(
       Menu.buildFromTemplate([
+        { label: escapeLabel(m.header), enabled: false },
         ...rows,
         { type: 'separator' },
-        { label: 'Pause knocks', type: 'checkbox', checked: opts.isPaused(), click: (item) => opts.onTogglePause(item.checked) },
-        { label: 'Open DeskKnock', click: () => opts.onOpen() },
+        { label: '⏸  Pause knocks', type: 'checkbox', checked: opts.isPaused(), click: (item) => opts.onTogglePause(item.checked) },
+        { label: '🏠  Open DeskKnock', click: () => opts.onOpen() },
         { type: 'separator' },
         { label: 'Quit', click: () => opts.onQuit() }
       ])
     )
   }
 
-  build([])
+  build(opts.initial)
   // Not emitted on Linux (StatusNotifier shows the menu), kept for other platforms.
   tray.on('click', () => opts.onOpen())
   return {
     tray,
-    updateTeammates: build,
+    update: build,
     destroy: () => tray.destroy()
   }
 }

@@ -13,8 +13,19 @@ const CSS = `
 @keyframes dk-blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
 `;
 
-export function CharacterSvg(props: { character: Character; pose: Pose; animate: boolean }): JSX.Element {
-  const { character: c, pose, animate } = props;
+/** Square crop around head, ears and hair (used by the 'head' variant, e.g. tray icons). */
+export const HEAD_VIEWBOX = '28 36 144 144';
+const HEAD_SIZE = 144;
+
+export function CharacterSvg(props: {
+  character: Character;
+  pose: Pose;
+  animate: boolean;
+  /** 'head' = head/hair/face only (no shirt or hands), cropped to HEAD_VIEWBOX at a fixed pixel size. */
+  variant?: 'full' | 'head';
+}): JSX.Element {
+  const { character: c, pose, animate, variant = 'full' } = props;
+  const full = variant === 'full';
   const head = FACES[c.face];
   const hair = HAIR[c.hair];
   const glasses = c.glasses === 'none' ? null : GLASSES[c.glasses];
@@ -23,11 +34,16 @@ export function CharacterSvg(props: { character: Character; pose: Pose; animate:
   const transform = pose === 'lean' ? 'rotate(-90 100 100)' : undefined;
 
   return (
-    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+    <svg
+      viewBox={full ? '0 0 200 200' : HEAD_VIEWBOX}
+      xmlns="http://www.w3.org/2000/svg"
+      width={full ? '100%' : HEAD_SIZE}
+      height={full ? '100%' : HEAD_SIZE}
+    >
       {animate && <style>{CSS}</style>}
       <g transform={transform} data-pose={pose}>
         {hair.back && <path data-part="hair-back" d={hair.back} fill={c.hairColor} />}
-        <path data-part="shirt" d={NECK_PATH} fill={c.shirt} />
+        {full && <path data-part="shirt" d={NECK_PATH} fill={c.shirt} />}
         <ellipse data-part="head" cx={head.cx} cy={head.cy} rx={head.rx} ry={head.ry} fill={c.skin} />
         <ellipse cx={head.cx - head.rx + 8} cy="116" rx={EAR_RX} ry={EAR_RY} fill={c.skin} />
         <ellipse cx={head.cx + head.rx - 8} cy="116" rx={EAR_RX} ry={EAR_RY} fill={c.skin} />
@@ -61,16 +77,20 @@ export function CharacterSvg(props: { character: Character; pose: Pose; animate:
             <line x1="95" y1="112" x2="105" y2="112" />
           </g>
         )}
-        <g fill={c.skin} stroke="#c98f6b" strokeWidth="1.5">
-          {HAND_RECTS.map((r) => (
-            <rect key={r.x} x={r.x} y={r.y} width="44" height="30" rx="12" />
-          ))}
-        </g>
-        <g stroke="#c98f6b" strokeWidth="1.5">
-          {FINGER_LINES.map(([x1, y1, x2, y2]) => (
-            <line key={x1} x1={x1} y1={y1} x2={x2} y2={y2} />
-          ))}
-        </g>
+        {full && (
+          <>
+            <g fill={c.skin} stroke="#c98f6b" strokeWidth="1.5">
+              {HAND_RECTS.map((r) => (
+                <rect key={r.x} x={r.x} y={r.y} width="44" height="30" rx="12" />
+              ))}
+            </g>
+            <g stroke="#c98f6b" strokeWidth="1.5">
+              {FINGER_LINES.map(([x1, y1, x2, y2]) => (
+                <line key={x1} x1={x1} y1={y1} x2={x2} y2={y2} />
+              ))}
+            </g>
+          </>
+        )}
       </g>
     </svg>
   );

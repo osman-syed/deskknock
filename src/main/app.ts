@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
 import { homedir, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { Store, type Settings } from '../core/store';
@@ -6,7 +6,7 @@ import { PeerRegistry, type PeerView } from '../core/peers';
 import { PROTOCOL_VERSION, type Message } from '../core/protocol';
 import { KnockEngine, type OutgoingView } from '../core/knockEngine';
 import { DEFAULT_CHARACTER, isCharacter, randomCharacter, type Character } from '../core/character';
-import { trayTeammateItems } from '../core/trayItems';
+import { TRAY_EMPTY_LABEL, trayHeader, trayTeammateItems } from '../core/trayItems';
 import type { AppState } from '../core/appState';
 import { listenErrorMessage } from '../core/network';
 import { Transport } from './transport';
@@ -14,6 +14,7 @@ import { Discovery } from './discovery';
 import { OverlayManager } from './overlay';
 import { watchScreenLock } from './lockWatcher';
 import { createTray, type TrayHandle } from './tray';
+import { HeadIconCache } from './headIcon';
 import { ensureAutostart, HIDDEN_FLAG } from './autostart';
 import { resizePhoto, MAX_PHOTO_INPUT_BYTES } from './photo';
 
@@ -88,19 +89,35 @@ export function startApp(): () => void {
   const TRAY_MIN_INTERVAL_MS = 500;
   let trayTimer: NodeJS.Timeout | null = null;
   let lastTrayBuild = 0;
+  // Face icons render asynchronously (sharp); rows show without one until ready, then the menu is rebuilt.
+  const faceIcons = new HeadIconCache(
+    ({ x1, x2 }) => {
+      const img = nativeImage.createFromBuffer(x1, { scaleFactor: 1 });
+      img.addRepresentation({ scaleFactor: 2, buffer: x2 });
+      return img;
+    },
+    () => scheduleTray(),
+  );
   const rebuildTray = (): void => {
     trayTimer = null;
     if (!tray || quitting) return;
     lastTrayBuild = Date.now();
-    const items = trayTeammateItems(registry.list(), Object.fromEntries(outgoing), lastTrayBuild, settings.peerId);
-    tray.updateTeammates(items.map((i) => ({
-      label: i.label,
-      enabled: i.enabled,
-      onClick: () => {
-        if (i.action === 'knock') knockPeer(i.peerId);
-        else if (i.action === 'cancel') cancelKnock(i.peerId);
-      },
-    })));
+    const peers = registry.list();
+    const items = trayTeammateItems(peers, Object.fromEntries(outgoing), lastTrayBuild, settings.peerId);
+    tray.update({
+      header: trayHeader(peers, settings.peerId),
+      emptyLabel: TRAY_EMPTY_LABEL,
+      teammates: items.map((i) => ({
+        label: i.label,
+        enabled: i.enabled,
+        icon: faceIcons.get(i.character),
+        iconKey: faceIcons.keyFor(i.character),
+        onClick: () => {
+          if (i.action === 'knock') knockPeer(i.peerId);
+          else if (i.action === 'cancel') cancelKnock(i.peerId);
+        },
+      })),
+    });
   };
   const scheduleTray = (): void => {
     if (trayTimer || quitting) return;
@@ -334,6 +351,7 @@ export function startApp(): () => void {
     onOpen: showMainWindow,
     onTogglePause: (paused) => setPaused(paused),
     onQuit: () => app.quit(),
+    initial: { header: 'TEAM', emptyLabel: TRAY_EMPTY_LABEL, teammates: [] },
   });
   scheduleTray();
   // Login autostart comes from /etc/xdg/autostart (the .deb); this only upgrades an old per-user entry.
