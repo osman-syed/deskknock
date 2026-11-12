@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=DeskKnock
+Comment=Knock on a colleague's screen
+Exec=/opt/DeskKnock/deskknock
+Icon=deskknock
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true
