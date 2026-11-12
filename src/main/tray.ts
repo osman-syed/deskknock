@@ -70,7 +70,7 @@ export function createTray(opts: TrayOptions): TrayHandle {
         { label: escapeLabel(m.header), enabled: false },
         ...rows,
         { type: 'separator' },
-        { label: '⏸  Pause knocks', type: 'checkbox', checked: opts.isPaused(), click: (item) => opts.onTogglePause(item.checked) },
+        { label: '⏸️  Pause knocks', type: 'checkbox', checked: opts.isPaused(), click: (item) => opts.onTogglePause(item.checked) },
         { label: '🏠  Open DeskKnock', click: () => opts.onOpen() },
         { type: 'separator' },
         { label: 'Quit', click: () => opts.onQuit() }
