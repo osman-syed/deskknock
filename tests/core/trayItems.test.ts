@@ -21,73 +21,73 @@ describe('trayTeammateItems', () => {
   });
   it('idle online peer → green dot alone, knock enabled, carries the character', () => {
     expect(one(mk('a', 'Ali'))).toEqual({
-      peerId: 'a', label: 'Ali   🟢', dot: '🟢', enabled: true, action: 'knock', character: DEFAULT_CHARACTER,
+      peerId: 'a', label: '🟢  Ali', dot: '🟢', enabled: true, action: 'knock', character: DEFAULT_CHARACTER,
     });
   });
   it('dismissed → 🟢 Seen', () => {
     expect(one(mk('a', 'Ali'), { kind: 'dismissed', canKnock: true })).toMatchObject({
-      label: 'Ali   🟢 Seen', dot: '🟢', enabled: true, action: 'knock',
+      label: '🟢  Ali  ·  Seen', dot: '🟢', enabled: true, action: 'knock',
     });
   });
   it('coming → 🟢 Coming', () => {
     expect(one(mk('a', 'Ali'), { kind: 'coming', canKnock: false })).toMatchObject({
-      label: 'Ali   🟢 Coming', dot: '🟢', enabled: false, action: null,
+      label: '🟢  Ali  ·  Coming', dot: '🟢', enabled: false, action: null,
     });
   });
   for (const kind of ['knocking', 'shown', 'queued'] as const) {
     it(`${kind} → 🟡 Knocking… · Cancel`, () => {
       expect(one(mk('a', 'Ali'), { kind })).toMatchObject({
-        label: 'Ali   🟡 Knocking… · Cancel', dot: '🟡', enabled: true, action: 'cancel',
+        label: '🟡  Ali  ·  Knocking… · Cancel', dot: '🟡', enabled: true, action: 'cancel',
       });
     });
   }
   it('not-answered → 🟡 Not answered yet · Cancel', () => {
     expect(one(mk('a', 'Ali'), { kind: 'not-answered' })).toMatchObject({
-      label: 'Ali   🟡 Not answered yet · Cancel', dot: '🟡', enabled: true, action: 'cancel',
+      label: '🟡  Ali  ·  Not answered yet · Cancel', dot: '🟡', enabled: true, action: 'cancel',
     });
   });
   it('busy → 🟡 Busy until hh:mm, knock only once allowed', () => {
     const until = new Date(2026, 10, 12, 14, 5, 0).getTime();
     expect(one(mk('a', 'Ali'), { kind: 'busy', until, canKnock: false })).toMatchObject({
-      label: 'Ali   🟡 Busy until 14:05', dot: '🟡', enabled: false, action: null,
+      label: '🟡  Ali  ·  Busy until 14:05', dot: '🟡', enabled: false, action: null,
     });
     expect(one(mk('a', 'Ali'), { kind: 'busy', until, canKnock: true })).toMatchObject({ enabled: true, action: 'knock' });
   });
   it('away peer (idle) → 🔴 Away, still knockable', () => {
     expect(one(mk('a', 'Ali', { away: true }))).toMatchObject({
-      label: 'Ali   🔴 Away', dot: '🔴', enabled: true, action: 'knock',
+      label: '🔴  Ali  ·  Away', dot: '🔴', enabled: true, action: 'knock',
     });
   });
   it('away view (outstanding knock) → 🔴 Away · Cancel', () => {
     expect(one(mk('a', 'Ali'), { kind: 'away' })).toMatchObject({
-      label: 'Ali   🔴 Away · Cancel', dot: '🔴', enabled: true, action: 'cancel',
+      label: '🔴  Ali  ·  Away · Cancel', dot: '🔴', enabled: true, action: 'cancel',
     });
   });
   it('paused peer → 🔴 Paused, disabled', () => {
     expect(one(mk('a', 'Ali', { paused: true }))).toMatchObject({
-      label: 'Ali   🔴 Paused', dot: '🔴', enabled: false, action: null,
+      label: '🔴  Ali  ·  Paused', dot: '🔴', enabled: false, action: null,
     });
   });
   it('paused view → 🔴 Paused, disabled', () => {
     expect(one(mk('a', 'Ali'), { kind: 'paused' })).toMatchObject({
-      label: 'Ali   🔴 Paused', dot: '🔴', enabled: false, action: null,
+      label: '🔴  Ali  ·  Paused', dot: '🔴', enabled: false, action: null,
     });
   });
   it('incompatible peer → ⚪ Needs update, disabled', () => {
     expect(one(mk('a', 'Ali', { compatible: false }))).toMatchObject({
-      label: 'Ali   ⚪ Needs update', dot: '⚪', enabled: false, action: null,
+      label: '⚪  Ali  ·  Needs update', dot: '⚪', enabled: false, action: null,
     });
   });
   it('offline peer → ⚪ Offline, disabled (even with a stale outgoing view)', () => {
     expect(one(mk('a', 'Ali', { online: false }), { kind: 'knocking' })).toMatchObject({
-      label: 'Ali   ⚪ Offline', dot: '⚪', enabled: false, action: null,
+      label: '⚪  Ali  ·  Offline', dot: '⚪', enabled: false, action: null,
     });
   });
   it('sanitises untrusted names', () => {
-    expect(one(mk('a', 'Bad\nName‮' + 'x'.repeat(100))).label).toBe('Bad Name ' + 'x'.repeat(30) + '…   🟢');
+    expect(one(mk('a', 'Bad\nName‮' + 'x'.repeat(100))).label).toBe('🟢  Bad Name ' + 'x'.repeat(30) + '…');
   });
   it('unnamed peer → "Unnamed"', () => {
-    expect(one(mk('a', '')).label).toBe('Unnamed   🟢');
+    expect(one(mk('a', '')).label).toBe('🟢  Unnamed');
   });
 });
 

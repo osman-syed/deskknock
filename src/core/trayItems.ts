@@ -50,7 +50,8 @@ export function trayTeammateItems(
       const view = outgoing[p.peerId] ?? { kind: 'idle', canKnock: p.online };
       const dot = trayDot(view, p);
       const { label: status, knockEnabled } = statusText(view, p, nowMs);
-      const row = (text: string): string => `${displayName(p.name)}   ${dot}${text ? ` ${text}` : ''}`;
+      // Status first; the face icon sits at the menu's right edge (AppIndicator places row icons there).
+      const row = (text: string): string => `${dot}  ${displayName(p.name)}${text ? `  ·  ${text}` : ''}`;
       const base = { peerId: p.peerId, dot, character: p.character };
       if (p.online && isCancellable(view)) {
         return { ...base, label: row(`${status} · Cancel`), enabled: true, action: 'cancel' };
