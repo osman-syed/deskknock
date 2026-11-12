@@ -6,7 +6,17 @@ Download the `.deb`, then:
 
     sudo apt install ./deskknock_0.1.0_amd64.deb
 
-Launch "DeskKnock" from the app menu. It runs in the tray and autostarts on login.
+DeskKnock runs in the background and starts automatically at your next login. To start it now without logging out, run once:
+
+    deskknock --hidden
+
+On first start it picks a random character for you and stays in the tray; no window opens.
+
+## Everyday use
+
+Knock from the tray icon: its menu lists your teammates with their status (Online, Busy until 14:05, ...). Click a name to knock; while the knock is waiting, click it again to cancel. The menu also has `Pause knocks`, `Open DeskKnock` and `Quit`.
+
+You only need the window (tray menu → `Open DeskKnock`) to change your character (Settings → Edit my character) or settings.
 
 ## Firewall
 
