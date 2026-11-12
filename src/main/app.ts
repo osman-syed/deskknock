@@ -1,18 +1,19 @@
-import { app, BrowserWindow, ipcMain, type Tray } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { homedir, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { Store, type Settings } from '../core/store';
 import { PeerRegistry, type PeerView } from '../core/peers';
 import { PROTOCOL_VERSION, type Message } from '../core/protocol';
 import { KnockEngine, type OutgoingView } from '../core/knockEngine';
-import { DEFAULT_CHARACTER, isCharacter, type Character } from '../core/character';
+import { DEFAULT_CHARACTER, isCharacter, randomCharacter, type Character } from '../core/character';
+import { trayTeammateItems } from '../core/trayItems';
 import type { AppState } from '../core/appState';
 import { listenErrorMessage } from '../core/network';
 import { Transport } from './transport';
 import { Discovery } from './discovery';
 import { OverlayManager } from './overlay';
 import { watchScreenLock } from './lockWatcher';
-import { createTray } from './tray';
+import { createTray, type TrayHandle } from './tray';
 import { ensureAutostart, HIDDEN_FLAG } from './autostart';
 import { resizePhoto, MAX_PHOTO_INPUT_BYTES } from './photo';
 
@@ -46,14 +47,16 @@ export function startApp(): () => void {
     settings = { ...settings, name: defaultName() };
     store.saveSettings(settings);
   }
+  // First run: give the user a random character and stay in the tray; they can edit it later from Settings.
   const firstRun = !store.hasCharacter();
+  if (firstRun) store.saveCharacter(randomCharacter());
   let character = store.loadCharacter();
   let photo = store.loadPhoto();
   const appVersion = app.getVersion();
 
   let mainWindow: BrowserWindow | null = null;
   let builderWindow: BrowserWindow | null = null;
-  let tray: Tray | null = null;
+  let tray: TrayHandle | null = null;
   let quitting = false;
   let locked = false;
   let networkError: string | null = null;
@@ -81,9 +84,37 @@ export function startApp(): () => void {
       photoHash: null, online: true, compatible: true, paused: false, away: false,
     };
 
+  // ---------- tray menu (coalesced to at most ~2 rebuilds/s) ----------
+  const TRAY_MIN_INTERVAL_MS = 500;
+  const TRAY_TIMED_REFRESH_MS = 5000;
+  let trayTimer: NodeJS.Timeout | null = null;
+  let trayRefreshTimer: NodeJS.Timeout | null = null;
+  let lastTrayBuild = 0;
+  const rebuildTray = (): void => {
+    trayTimer = null;
+    if (!tray || quitting) return;
+    lastTrayBuild = Date.now();
+    const items = trayTeammateItems(registry.list(), Object.fromEntries(outgoing), lastTrayBuild, settings.peerId);
+    tray.updateTeammates(items.map((i) => ({
+      label: i.label,
+      enabled: i.enabled,
+      onClick: () => {
+        if (i.action === 'knock') knockPeer(i.peerId);
+        else if (i.action === 'cancel') cancelKnock(i.peerId);
+      },
+    })));
+    if (trayRefreshTimer) clearTimeout(trayRefreshTimer);
+    trayRefreshTimer = items.some((i) => i.timed) ? setTimeout(scheduleTray, TRAY_TIMED_REFRESH_MS) : null;
+  };
+  const scheduleTray = (): void => {
+    if (trayTimer || quitting) return;
+    trayTimer = setTimeout(rebuildTray, Math.max(0, lastTrayBuild + TRAY_MIN_INTERVAL_MS - Date.now()));
+  };
+
   // ---------- state push (coalesced) ----------
   let pushQueued = false;
   const pushState = (): void => {
+    scheduleTray();
     if (pushQueued) return;
     pushQueued = true;
     setImmediate(() => {
@@ -182,19 +213,23 @@ export function startApp(): () => void {
     pushState();
   };
 
+  // ---------- knock / cancel (shared by the main window and the tray menu) ----------
+  const knockPeer = (peerId: unknown): void => {
+    if (typeof peerId !== 'string' || peerId === settings.peerId) return;
+    const p = registry.list().find((x) => x.peerId === peerId);
+    if (!p || !p.online || !p.compatible) return; // engine doesn't know compatibility
+    engine.knock(peerId);
+  };
+  const cancelKnock = (peerId: unknown): void => {
+    if (typeof peerId === 'string') engine.cancel(peerId);
+  };
+
   // ---------- IPC from the main window ----------
   const fromMain = (e: Electron.IpcMainEvent): boolean => !!mainWindow && e.sender === mainWindow.webContents;
 
   ipcMain.on('deskknock:ready', (e) => { if (fromMain(e)) pushState(); });
-  ipcMain.on('deskknock:knock', (e, peerId: unknown) => {
-    if (!fromMain(e) || typeof peerId !== 'string' || peerId === settings.peerId) return;
-    const p = registry.list().find((x) => x.peerId === peerId);
-    if (!p || !p.online || !p.compatible) return; // engine doesn't know compatibility
-    engine.knock(peerId);
-  });
-  ipcMain.on('deskknock:cancel', (e, peerId: unknown) => {
-    if (fromMain(e) && typeof peerId === 'string') engine.cancel(peerId);
-  });
+  ipcMain.on('deskknock:knock', (e, peerId: unknown) => { if (fromMain(e)) knockPeer(peerId); });
+  ipcMain.on('deskknock:cancel', (e, peerId: unknown) => { if (fromMain(e)) cancelKnock(peerId); });
   ipcMain.on('deskknock:saveSettings', (e, raw: unknown) => {
     if (!fromMain(e)) return;
     const next = sanitizeSettings(raw, settings);
@@ -271,8 +306,9 @@ export function startApp(): () => void {
       width: 900,
       height: 600,
       title: 'DeskKnock',
-      // Login autostart passes --hidden: stay in the tray. The window still exists so state pushes work.
-      show: !process.argv.includes(HIDDEN_FLAG),
+      // Login autostart passes --hidden, and first run starts in the background: stay in the tray.
+      // The window still exists so state pushes work.
+      show: !firstRun && !process.argv.includes(HIDDEN_FLAG),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         contextIsolation: true,
@@ -297,19 +333,20 @@ export function startApp(): () => void {
   };
 
   createMainWindow();
-  if (firstRun) openBuilder();
   tray = createTray({
-    paused: settings.paused,
+    isPaused: () => settings.paused,
     onOpen: showMainWindow,
-    // The checkbox item toggles itself, so the tray already shows the new state.
     onTogglePause: (paused) => setPaused(paused),
     onQuit: () => app.quit(),
   });
+  scheduleTray();
   if (app.isPackaged) ensureAutostart(homedir(), process.execPath);
 
   app.on('before-quit', () => {
     quitting = true;
     clearInterval(tickTimer);
+    if (trayTimer) clearTimeout(trayTimer);
+    if (trayRefreshTimer) clearTimeout(trayRefreshTimer);
     stopLockWatch();
     discovery.stop();
     void transport.close();
