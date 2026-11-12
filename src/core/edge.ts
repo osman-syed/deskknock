@@ -10,7 +10,7 @@ export function pickEdge(rand: () => number = Math.random): Edge {
 }
 
 /** Window rect flush to the given edge/corner of the work area. Side edges sit at 60% height. */
-export function overlayBounds(edge: Edge, workArea: Rect, size = { w: 460, h: 320 }): Rect {
+export function overlayBounds(edge: Edge, workArea: Rect, size = { w: 400, h: 260 }): Rect {
   const { w, h } = size;
   const right = workArea.x + workArea.width - w;
   const bottom = workArea.y + workArea.height - h;

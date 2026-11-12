@@ -4,7 +4,7 @@ import type { Answer } from '../core/protocol';
 import type { PeerView } from '../core/peers';
 import { overlayBounds, pickEdgeExcept, type Edge } from '../core/edge';
 
-const SIZE = { w: 460, h: 320 };
+const SIZE = { w: 400, h: 260 };
 const REPLY_MS = 8000;
 
 type Payload = {

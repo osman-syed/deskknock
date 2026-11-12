@@ -21,21 +21,21 @@ export interface OverlayPayload {
 
 const CSS = `
 html, body { margin:0; background:transparent; overflow:hidden; font-family: Inter, system-ui, sans-serif; user-select:none; }
-.dk-peek { position:absolute; width:150px; height:150px; }
+.dk-peek { position:absolute; width:100px; height:100px; }
 .dk-peek svg { width:100%; height:100%; display:block; }
 .dk-mirror { position:absolute; inset:0; }
 .dk-mirror.left { transform: scaleX(-1); }
-.dk-peek.bottom { bottom:-6px; animation: dk-rise 1.1s cubic-bezier(.34,1.56,.64,1) both; }
-.dk-peek.bottom.r { right:40px; } .dk-peek.bottom.l { left:40px; }
-.dk-peek.side { right:-8px; bottom:80px; animation: dk-slide 1.1s cubic-bezier(.34,1.56,.64,1) both; }
+.dk-peek.bottom { bottom:-4px; animation: dk-rise 1.1s cubic-bezier(.34,1.56,.64,1) both; }
+.dk-peek.bottom.r { right:28px; } .dk-peek.bottom.l { left:28px; }
+.dk-peek.side { right:-6px; bottom:70px; animation: dk-slide 1.1s cubic-bezier(.34,1.56,.64,1) both; }
 @keyframes dk-rise { 0% { transform: translateY(105%); } 70% { transform: translateY(-4%); } 100% { transform: translateY(0); } }
 @keyframes dk-slide { 0% { transform: translateX(105%); } 70% { transform: translateX(-4%); } 100% { transform: translateX(0); } }
 .dk-bubble { position:absolute; background:#fff; color:#1a1c26; border-radius:16px; padding:14px 16px 12px; width:230px; box-sizing:border-box;
   box-shadow:0 6px 18px rgba(0,0,0,.3); animation: dk-pop .35s ease-out 1s both; }
 .dk-bubble::after { content:""; position:absolute; width:18px; height:18px; background:#fff; transform:rotate(45deg); border-radius:3px; }
-.dk-bubble.to-left { right:175px; } .dk-bubble.to-left::after { right:-6px; bottom:22px; }
-.dk-bubble.to-right { left:175px; } .dk-bubble.to-right::after { left:-6px; bottom:22px; }
-.dk-bubble.bottom { bottom:120px; } .dk-bubble.side { bottom:140px; }
+.dk-bubble.to-left { right:122px; } .dk-bubble.to-left::after { right:-6px; bottom:22px; }
+.dk-bubble.to-right { left:122px; } .dk-bubble.to-right::after { left:-6px; bottom:22px; }
+.dk-bubble.bottom { bottom:78px; } .dk-bubble.side { bottom:110px; }
 @keyframes dk-pop { 0% { opacity:0; transform: scale(.6) translateY(10px); } 100% { opacity:1; transform: none; } }
 .dk-hi { font-size:12px; color:#7a7f8f; margin-bottom:2px; }
 .dk-who { font-size:15px; font-weight:600; display:flex; align-items:center; gap:6px; }
