@@ -8,7 +8,7 @@ Download the `.deb`, then:
 
 DeskKnock runs in the background and starts automatically at your next login. To start it now without logging out, run once:
 
-    deskknock --hidden
+    setsid -f deskknock --hidden >/dev/null 2>&1
 
 On first start it picks a random character for you and stays in the tray; no window opens.
 

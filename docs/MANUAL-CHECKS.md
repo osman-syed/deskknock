@@ -44,7 +44,7 @@ Step 5 (second machine): install on one teammate's machine and run Task 9 Step 5
 
 ## Background-first & tray knock
 
-1. Fresh config: quit DeskKnock, then `mv ~/.config/DeskKnock ~/.config/DeskKnock.bak`. Run `deskknock --hidden` -> no window opens, no character builder opens, the tray icon is present.
+1. Fresh config: quit DeskKnock, then `mv ~/.config/DeskKnock ~/.config/DeskKnock.bak`. Run `setsid -f deskknock --hidden >/dev/null 2>&1` -> no window opens, no character builder opens, the tray icon is present.
 2. Random character: tray menu -> `Open DeskKnock` -> Settings -> Edit my character -> a (random) character is shown, not the default one. Close the windows.
 3. Repeat step 1 with plain `deskknock` (fresh config again) -> still no window on first run.
 4. Tray menu lists teammates (online first, by name) as `Name — Online` / `Offline` / `Paused`...; offline/paused rows are greyed out. With no teammates it shows "No teammates online yet".
