@@ -11,7 +11,7 @@ export interface BonjourService {
   txt?: Record<string, unknown>;
 }
 export interface BonjourLike {
-  publish(o: { name: string; type: string; protocol: 'tcp'; port: number; txt: Record<string, string> }): { stop?: (cb?: () => void) => void };
+  publish(o: { name: string; type: string; protocol: 'tcp'; port: number; host?: string; txt: Record<string, string> }): { stop?: (cb?: () => void) => void };
   find(o: { type: string; protocol: 'tcp' }): {
     on(ev: 'up' | 'srv-update' | 'txt-update', cb: (s: BonjourService) => void): unknown;
     stop(): void;
@@ -59,7 +59,8 @@ export class Discovery {
     // Default errorCallback throws inside an mDNS socket callback (uncaught in main); log instead.
     const b = this.opts.bonjour ?? (new Bonjour({}, (e: unknown) => console.warn('mdns', e)) as unknown as BonjourLike);
     this.bonjour = b;
-    this.published = b.publish({ name: `deskknock-${this.opts.peerId}`, type: 'deskknock', protocol: 'tcp', port: this.opts.port, txt: { peerId: this.opts.peerId } });
+    // Unique mDNS host name: identical machine hostnames must not collide.
+    this.published = b.publish({ name: `deskknock-${this.opts.peerId}`, type: 'deskknock', protocol: 'tcp', port: this.opts.port, host: `deskknock-${this.opts.peerId}.local`, txt: { peerId: this.opts.peerId } });
     const browser = b.find({ type: 'deskknock', protocol: 'tcp' });
     this.browser = browser;
     browser.on('up', (s) => this.onUp(s));
@@ -114,7 +115,10 @@ export class Discovery {
   private remember(s: BonjourService): { host: string; port: number } | null {
     const peerId = s.txt?.peerId;
     if (peerId === this.opts.peerId) return null;
-    const host = s.addresses?.find(isIPv4) ?? s.referer?.address;
+    // Office laptops can share a hostname (same OS image), so resolved addresses may point at
+    // ourselves (127.0.1.1). Prefer the packet's real source, and never use loopback.
+    const usable = (ip: string | undefined): ip is string => !!ip && isIPv4(ip) && !ip.startsWith('127.');
+    const host = usable(s.referer?.address) ? s.referer.address : s.addresses?.find(usable);
     if (!host) return null;
     const a = { host, port: s.port };
     if (typeof peerId === 'string' && peerId) this.known.set(peerId, a);

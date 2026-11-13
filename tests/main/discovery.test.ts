@@ -42,6 +42,21 @@ describe('Discovery', () => {
     expect(connect).toHaveBeenCalledWith('10.0.0.9', 47321);
   });
 
+  it('same-hostname laptops: ignores loopback addresses and prefers the real source address', () => {
+    const f = fakeBonjour(); const connect = vi.fn();
+    new Discovery({ peerId: 'me', name: 'Me', port: 47321, connect, bonjour: f.b }).start();
+    f.browser.emit('up', { port: 47321, addresses: ['127.0.1.1'], referer: { address: '192.168.1.75' }, txt: { peerId: 'other' } });
+    expect(connect).toHaveBeenCalledWith('192.168.1.75', 47321);
+    f.browser.emit('up', { port: 47321, addresses: ['127.0.1.1'], txt: { peerId: 'third' } });
+    expect(connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('publishes a unique mDNS host name per peer', () => {
+    const f = fakeBonjour();
+    new Discovery({ peerId: 'abc', name: 'Me', port: 47321, connect: vi.fn(), bonjour: f.b }).start();
+    expect(f.published[0]).toMatchObject({ host: 'deskknock-abc.local' });
+  });
+
   it('falls back to referer address', () => {
     const f = fakeBonjour(); const connect = vi.fn();
     new Discovery({ peerId: 'me', name: 'Me', port: 47321, connect, bonjour: f.b }).start();
